@@ -10,9 +10,11 @@ from flask import Flask, request, jsonify, send_file
 import psycopg2
 import psycopg2.extras
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)

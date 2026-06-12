@@ -1146,6 +1146,15 @@
 
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
+// ── Base URL helper — works behind Posit Connect reverse proxy ────────────────
+const BASE_URL = (() => {
+  const p = window.location.pathname;
+  // Strip trailing slash and last path segment to get the app root
+  // e.g. /content/abc123/ → /content/abc123
+  return window.location.origin + p.replace(/\/+$/, "").replace(/\/[^/]*$/, "");
+})();
+function apiUrl(path) { return BASE_URL + path; }
+
 const STEPS = [
   { id: "mode",       label: "Output type" },
   { id: "details",   label: "Project details" },
@@ -1228,7 +1237,7 @@ function handleSessionFile(file) {
   const fd = new FormData();
   fd.append("session", file);
 
-  fetch("/load_session", { method: "POST", body: fd })
+  fetch(apiUrl("/load_session"), { method: "POST", body: fd })
     .then(r => r.json())
     .then(data => {
       if (data.error) {
@@ -1974,7 +1983,7 @@ async function fetchDomainContext(i, indication) {
   if (!ta || !indication) return;
 
   try {
-    const res = await fetch(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`);
+    const res = await fetch(apiUrl(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`));
     if (!res.ok) {
       console.warn(`fetchDomainContext: server returned ${res.status} for ${ta}/${indication}`);
       return;
@@ -2109,7 +2118,7 @@ async function runValidation() {
   label.textContent = "Validating…";
 
   try {
-    const resp = await fetch("/validate", {
+    const resp = await fetch(apiUrl("/validate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tables }),
@@ -2949,7 +2958,7 @@ async function downloadAll() {
   spinner.style.display = "block";
 
   try {
-    const resp = await fetch("/generate", {
+    const resp = await fetch(apiUrl("/generate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
@@ -3014,7 +3023,7 @@ function reset() {
 
 async function checkConnection() {
   try {
-    const res = await fetch("/status");
+    const res = await fetch(apiUrl("/status"));
     const data = await res.json();
     if (data.connected) {
       showMainApp();
@@ -3056,7 +3065,7 @@ async function submitConnect() {
   };
 
   try {
-    const res = await fetch("/connect", {
+    const res = await fetch(apiUrl("/connect"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
