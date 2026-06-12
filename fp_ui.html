@@ -1,0 +1,3088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>File Primer — Lilly BI&A</title>
+<style>
+  :root {
+    --red: #D52B1E;
+    --red-light: #FBE9E8;
+    --red-dark: #A01F14;
+    --gray-50: #F8F8F8;
+    --gray-100: #F0F0F0;
+    --gray-200: #E0E0E0;
+    --gray-400: #9E9E9E;
+    --gray-600: #5E5E5E;
+    --gray-800: #1E1E1E;
+    --green: #1B7B3A;
+    --green-light: #E8F5ED;
+    --amber: #8A5700;
+    --amber-light: #FFF3D6;
+    --blue: #0047BB;
+    --blue-light: #E8EEFA;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+    --font: "Helvetica Neue", Arial, sans-serif;
+    --mono: "Courier New", monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font);
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+  .logo-mark {
+    width: 28px; height: 28px;
+    background: var(--red);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .logo-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--gray-400);
+    margin-left: 4px;
+  }
+  header nav {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--gray-400);
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    background: #fff;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 2rem;
+  }
+  .progress-steps {
+    display: flex;
+    gap: 0;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .step-tab {
+    flex: 1;
+    padding: 12px 8px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: default;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .step-tab.active { border-bottom-color: var(--red); }
+  .step-tab.done { border-bottom-color: var(--gray-200); }
+  .step-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--gray-100);
+    color: var(--gray-400);
+    transition: all 0.2s;
+  }
+  .step-tab.active .step-num { background: var(--red); color: #fff; }
+  .step-tab.done .step-num { background: var(--green); color: #fff; }
+  .step-label {
+    font-size: 10px;
+    color: var(--gray-400);
+    text-align: center;
+    line-height: 1.3;
+  }
+  .step-tab.active .step-label { color: var(--red); font-weight: 500; }
+
+  /* Main layout */
+  main {
+    flex: 1;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2.5rem 1rem 4rem;
+  }
+
+  /* Panels */
+  .panel {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+  }
+  .panel-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+  }
+  .panel-subtitle {
+    font-size: 13px;
+    color: var(--gray-600);
+    margin-bottom: 1.75rem;
+    line-height: 1.5;
+  }
+
+  /* Form controls */
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-600);
+    margin-bottom: 6px;
+  }
+  label.field-label span {
+    color: var(--red);
+    margin-left: 2px;
+  }
+  input[type="text"], textarea, select {
+    display: block;
+    width: 100%;
+    font-family: var(--font);
+    font-size: 14px;
+    color: var(--gray-800);
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(213,43,30,0.08);
+  }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  .field-hint {
+    font-size: 11px;
+    color: var(--gray-400);
+    margin-top: 5px;
+  }
+  .field-group { margin-bottom: 1.25rem; }
+
+  /* Output type cards */
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+  .type-card {
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    user-select: none;
+  }
+  .type-card:hover { border-color: var(--red); background: var(--red-light); }
+  .type-card.selected { border-color: var(--red); background: var(--red-light); }
+  .type-card-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+  }
+  .type-card-desc {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.4;
+  }
+  .type-card-files {
+    font-size: 11px;
+    color: var(--gray-400);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  /* Audience chips */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .chip {
+    padding: 6px 14px;
+    border-radius: 100px;
+    border: 1.5px solid var(--gray-200);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--gray-600);
+    background: #fff;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--red); color: var(--red); }
+  .chip.selected {
+    border-color: var(--red);
+    background: var(--red);
+    color: #fff;
+  }
+
+  /* Table validation */
+  .table-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .table-input-row textarea {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .validate-btn {
+    padding: 9px 16px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    height: 38px;
+    align-self: flex-start;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .validate-btn:hover { background: #003899; }
+  .validate-btn:disabled { background: var(--gray-400); cursor: not-allowed; }
+
+  /* Validation results */
+  .val-results { margin-top: 1rem; display: flex; flex-direction: column; gap: 10px; }
+  .val-card {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .val-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s;
+  }
+  .val-card-header:hover { background: var(--gray-50); }
+  .val-card.ok .val-card-header { background: var(--green-light); }
+  .val-card.err .val-card-header { background: #FEE; }
+  .val-badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .val-card.ok .val-badge { background: var(--green); color: #fff; }
+  .val-card.err .val-badge { background: #C62828; color: #fff; }
+  .val-card-meta {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--gray-400);
+    font-weight: 400;
+  }
+  .val-card-toggle { margin-left: 6px; font-size: 12px; color: var(--gray-400); }
+  .val-card-body {
+    display: none;
+    padding: 12px 14px;
+    border-top: 1px solid var(--gray-200);
+    overflow-x: auto;
+  }
+  .val-card-body.open { display: block; }
+  .col-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .col-table th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--gray-600);
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .col-table td {
+    padding: 4px 8px;
+    color: var(--gray-800);
+    border-bottom: 1px solid var(--gray-100);
+    font-family: var(--mono);
+    font-size: 11.5px;
+  }
+  .col-table tr:last-child td { border-bottom: none; }
+  .badge-dist { background: #E8EEFA; color: var(--blue); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .badge-sort { background: var(--amber-light); color: var(--amber); padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  .badge-nn { background: #FEF0F0; color: #C62828; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+
+  /* Validation score */
+  .score-panel {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+  .score-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    background: var(--gray-50);
+  }
+  .score-ring {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .score-ring.great { background: var(--green-light); color: var(--green); }
+  .score-ring.ok { background: var(--amber-light); color: var(--amber); }
+  .score-ring.low { background: #FEE; color: #C62828; }
+  .score-label { font-size: 14px; font-weight: 600; }
+  .score-sub { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
+  .check-list { padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; }
+  .check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .check-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .check-text { line-height: 1.5; }
+  .check-text strong { font-weight: 500; }
+  .check-gap { color: var(--amber); }
+
+  /* Preview tabs */
+  .preview-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--gray-200); margin-bottom: 0; overflow-x: auto; }
+  .preview-tab {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray-600);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    font-family: var(--mono);
+    transition: all 0.15s;
+  }
+  .preview-tab:hover { color: var(--red); }
+  .preview-tab.active { color: var(--red); border-bottom-color: var(--red); }
+  .preview-content {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 1.25rem;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 360px;
+    overflow-y: auto;
+    color: var(--gray-800);
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 1.75rem;
+    align-items: center;
+  }
+  .btn {
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    font-family: var(--font);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary { background: var(--red); color: #fff; }
+  .btn-primary:hover { background: var(--red-dark); }
+  .btn-primary:disabled { background: var(--gray-400); cursor: not-allowed; }
+  .btn-secondary {
+    background: #fff;
+    color: var(--gray-600);
+    border: 1px solid var(--gray-200);
+  }
+  .btn-secondary:hover { background: var(--gray-50); border-color: var(--gray-400); }
+  .btn-ghost { background: none; color: var(--gray-400); border: none; font-size: 13px; margin-left: auto; }
+  .btn-ghost:hover { color: var(--red); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #145E2C; }
+
+  /* Spinner */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Prompting examples ─────────────────────────────────────────────────── */
+  .prompt-section {
+    margin-bottom: 3rem;
+  }
+  .prompt-pair {
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #fff;
+  }
+  .prompt-pair-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .prompt-pair-label.without {
+    background: #fdf3f2;
+    color: #a01f14;
+  }
+  .prompt-pair-label.with {
+    background: var(--green-light);
+    color: var(--green);
+  }
+  .prompt-pair-label .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .prompt-pair-label.without .dot { background: var(--red); }
+  .prompt-pair-label.with .dot    { background: var(--green); }
+  .prompt-body {
+    padding: 13px 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--gray-700, #3a3a3a);
+    font-family: var(--mono);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .prompt-body.without {
+    background: #fff;
+    color: var(--gray-600);
+    border-bottom: 1px solid var(--gray-100);
+  }
+  .prompt-body.with {
+    background: var(--green-light);
+    color: #145228;
+    font-weight: 500;
+  }
+  .prompt-scenario {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin: 1.5rem 0 0.6rem;
+  }
+  .prompt-scenario:first-child { margin-top: 0; }
+
+  /* ── Session resume ─────────────────────────────────────────────────────── */
+  .home-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 1.75rem;
+  }
+  .home-split-card {
+    border: 1.5px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 22px 20px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .home-split-card.primary {
+    border-color: var(--red);
+    background: var(--red-light);
+  }
+  .home-split-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+  .home-split-card p {
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.55;
+    flex: 1;
+  }
+  .upload-zone {
+    border: 1.5px dashed var(--gray-200);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    background: var(--gray-50);
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--blue);
+    background: var(--blue-light);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-zone-label {
+    font-size: 13px;
+    color: var(--gray-400);
+    pointer-events: none;
+  }
+  .upload-zone-label strong {
+    color: var(--blue);
+    font-weight: 600;
+  }
+  .upload-zone.loaded {
+    border-color: var(--green);
+    background: var(--green-light);
+  }
+  .upload-zone.loaded .upload-zone-label { color: var(--green); }
+
+  /* Resume diff screen */
+  .resume-wrap {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2.5rem 1rem 4rem;
+  }
+  .resume-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.75rem;
+  }
+  .resume-header-icon {
+    width: 40px; height: 40px;
+    background: var(--blue-light);
+    border: 1.5px solid #c5d3f0;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .resume-header-text h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 3px;
+  }
+  .resume-header-text p {
+    font-size: 13px;
+    color: var(--gray-600);
+  }
+  .resume-summary {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 1.25rem;
+  }
+  .resume-summary-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--gray-400);
+    margin-bottom: 14px;
+  }
+  .resume-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .resume-field {
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .resume-field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .resume-field-value {
+    font-size: 13px;
+    color: var(--gray-800);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .resume-field-value.muted { color: var(--gray-400); font-style: italic; font-weight: 400; }
+  .resume-hints {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+  }
+  .resume-hint {
+    background: var(--amber-light);
+    border: 1px solid #e8c97a;
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .resume-hint-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+  .resume-hint-body {}
+  .resume-hint-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--amber);
+    margin-bottom: 3px;
+  }
+  .resume-hint-detail {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+  .resume-hint-jump {
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--amber);
+    background: rgba(138,87,0,0.08);
+    border: 1px solid rgba(138,87,0,0.2);
+    border-radius: 100px;
+    padding: 3px 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    align-self: center;
+    transition: background 0.15s;
+  }
+  .resume-hint-jump:hover { background: rgba(138,87,0,0.15); }
+  .resume-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* ── Step info tooltip ───────────────────────────────────────────────────── */
+  .step-info-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 1.75rem;
+  }
+  .step-info-row .panel-subtitle {
+    margin-bottom: 0;
+    flex: 1;
+  }
+  .info-btn {
+    flex-shrink: 0;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--gray-200);
+    background: #fff;
+    color: var(--gray-400);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    margin-top: 1px;
+    position: relative;
+  }
+  .info-btn:hover, .info-btn.active {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: var(--blue-light);
+  }
+  .info-drawer {
+    background: var(--blue-light);
+    border: 1px solid #c5d3f0;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 1.5rem;
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.65;
+    display: none;
+  }
+  .info-drawer.open { display: block; }
+  .info-drawer strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--blue);
+    margin-bottom: 8px;
+  }
+  .info-drawer ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .info-drawer ul li {
+    margin-bottom: 5px;
+  }
+  .info-drawer ul li:last-child { margin-bottom: 0; }
+  .info-drawer code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(0,71,187,0.08);
+    color: var(--blue);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+
+  /* ── Home page ───────────────────────────────────────────────────────────── */
+  .home-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem 5rem;
+  }
+
+  .home-hero {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .home-hero-mark {
+    flex-shrink: 0;
+    width: 56px; height: 56px;
+    background: var(--red);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    box-shadow: 0 4px 16px rgba(213,43,30,0.22);
+    margin-top: 4px;
+  }
+
+  .home-hero-text h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gray-800);
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+
+  .home-hero-text h1 em {
+    font-style: normal;
+    color: var(--red);
+  }
+
+  .home-hero-text p {
+    font-size: 15px;
+    color: var(--gray-600);
+    line-height: 1.65;
+    max-width: 560px;
+  }
+
+  .home-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1.5rem;
+    padding: 11px 24px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    text-decoration: none;
+  }
+  .home-cta:hover { background: var(--red-dark); transform: translateY(-1px); }
+  .home-cta-arrow { font-size: 16px; }
+
+  .home-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--gray-400);
+    margin-bottom: 1rem;
+  }
+
+  /* How it works steps */
+  .home-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 3rem;
+  }
+  .home-step-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    position: relative;
+  }
+  .home-step-num {
+    display: inline-block;
+    width: 24px; height: 24px;
+    background: var(--red-light);
+    color: var(--red);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 6px;
+    text-align: center;
+    line-height: 24px;
+    margin-bottom: 10px;
+  }
+  .home-step-card h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 5px;
+  }
+  .home-step-card p {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+
+  /* File cards */
+  .home-files {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 3rem;
+  }
+  .file-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .file-card:hover {
+    border-color: var(--gray-400);
+    box-shadow: var(--shadow);
+  }
+  .file-card-icon {
+    flex-shrink: 0;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .file-card-body {}
+  .file-card-name {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--gray-800);
+    margin-bottom: 4px;
+  }
+  .file-card-trigger {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-400);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 5px;
+  }
+  .file-card-desc {
+    font-size: 12px;
+    color: var(--gray-600);
+    line-height: 1.5;
+  }
+
+  /* Always-generated badge */
+  .badge-always {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+    background: var(--green-light);
+    color: var(--green);
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+  }
+  .badge-conditional {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 100px;
+    background: var(--amber-light);
+    color: var(--amber);
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.02em;
+  }
+
+  .home-divider {
+    border: none;
+    border-top: 1px solid var(--gray-200);
+    margin: 2.5rem 0;
+  }
+
+  /* Claude usage tip */
+  .home-usage-tip {
+    background: var(--blue-light);
+    border: 1px solid #c5d3f0;
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+  }
+  .home-usage-tip-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .home-usage-tip-body {}
+  .home-usage-tip-body strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue);
+    margin-bottom: 6px;
+  }
+  .home-usage-tip-body p {
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .home-usage-tip-body code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: rgba(0,71,187,0.07);
+    color: var(--blue);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    background: var(--gray-800);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 999;
+    max-width: 320px;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.err { background: #C62828; }
+
+  /* Misc helpers */
+  .divider { height: 1px; background: var(--gray-200); margin: 1.5rem 0; }
+  .hidden { display: none !important; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .tag-blue { background: var(--blue-light); color: var(--blue); }
+  .tag-green { background: var(--green-light); color: var(--green); }
+
+  /* Step transitions */
+  .step-panel { animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- ── Connection screen (shown when no session credentials / env vars present) ── -->
+<div id="connect-screen" style="display:none; justify-content:center; align-items:center;
+     min-height:100vh; background:var(--gray-50);">
+  <div style="background:#fff; border:1px solid var(--gray-200); border-radius:var(--radius-lg);
+              padding:40px 36px; width:420px; box-shadow:var(--shadow-md);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <div class="logo-mark" style="width:32px;height:32px;font-size:13px;">FP</div>
+      <span style="font-weight:700;font-size:16px;color:var(--gray-800);">File Primer</span>
+    </div>
+    <h2 style="font-size:20px;font-weight:700;color:var(--gray-800);margin-bottom:6px;">
+      Sign in to continue
+    </h2>
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:24px;line-height:1.5;">
+      Enter your Redshift credentials to begin.<br>
+      These are stored in your browser session only — never on the server.
+    </p>
+
+    <label style="font-size:11px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:0.06em;color:var(--gray-600);">Username</label>
+    <input id="db_user" type="text" placeholder="your-username"
+           style="width:100%;margin:4px 0 14px;padding:9px 12px;border:1px solid var(--gray-200);
+                  border-radius:var(--radius);font-size:13px;font-family:var(--font);outline:none;"
+           onkeydown="if(event.key==='Enter')submitConnect()">
+
+    <label style="font-size:11px;font-weight:700;text-transform:uppercase;
+                  letter-spacing:0.06em;color:var(--gray-600);">Password</label>
+    <input id="db_password" type="password" placeholder="••••••••"
+           style="width:100%;margin:4px 0 20px;padding:9px 12px;border:1px solid var(--gray-200);
+                  border-radius:var(--radius);font-size:13px;font-family:var(--font);outline:none;"
+           onkeydown="if(event.key==='Enter')submitConnect()">
+
+    <div id="connect-error"
+         style="display:none;background:var(--red-light);color:var(--red-dark);font-size:12.5px;
+                padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;line-height:1.5;">
+    </div>
+
+    <button id="connect-btn" onclick="submitConnect()"
+            style="width:100%;background:var(--red);color:#fff;border:none;
+                   border-radius:var(--radius);padding:11px;font-size:14px;
+                   font-weight:700;cursor:pointer;font-family:var(--font);
+                   transition:opacity 0.15s;">
+      Connect
+    </button>
+  </div>
+</div>
+
+<!-- ── Main app (hidden until connection confirmed) ───────────────────────── -->
+<div id="main-app" style="display:none;flex-direction:column;min-height:100vh;">
+
+<header>
+  <a class="logo" href="#" onclick="renderHome(); return false;">
+    <div class="logo-mark">FP</div>
+    <span class="logo-text">File Primer</span>
+    <span class="logo-sub">BI&A scaffold generator</span>
+  </a>
+  <nav id="env-badge"></nav>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-steps" id="progress-steps"></div>
+</div>
+
+<main id="main-content"></main>
+
+<div id="toast"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const STEPS = [
+  { id: "mode",       label: "Output type" },
+  { id: "details",   label: "Project details" },
+  { id: "domain",    label: "Domain context" },
+  { id: "tables",    label: "Tables" },
+  { id: "kpis",      label: "KPIs" },
+  { id: "validate",  label: "Completeness" },
+  { id: "preview",   label: "Preview & download" },
+];
+
+const AUDIENCES = [
+  "Brand team", "Field leadership", "Medical affairs",
+  "Market access", "Finance", "Executive / SLT", "External agency",
+];
+
+// Output type removed — full scaffold always generated; visual_output checkbox controls styling_guide.md
+
+let state = {
+  currentStep: 0,
+  visual_output: false,
+  project_name: "",
+  description: "",
+  owner: "",
+  audience: [],
+  // Domain context — Step 2b (multi-domain)
+  domains: [
+    {therapeutic_area:"", brand:"", indication:[], indication_other:"", data_sources:[], data_sources_other:"", key_population:{}, known_exclusions:"", market_context:{}, disease_state:{}, drug_performance:{}, additional_context:""},
+  ],
+  vocab: [{term:"",definition:""},{term:"",definition:""}],
+  tables_raw: "",
+  validated_tables: {},
+  kpis: [
+    {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
+    {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
+    {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
+  ],
+  stakeholder_notes: "",
+  previewFiles: {},
+};
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function toast(msg, isErr = false) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show" + (isErr ? " err" : "");
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { el.className = ""; }, 3200);
+}
+
+function $(id) { return document.getElementById(id); }
+
+function toggleInfo(id) {
+  const drawer = $(id);
+  const btn    = $("btn-" + id);
+  if (!drawer) return;
+  const isOpen = drawer.classList.contains("open");
+  drawer.classList.toggle("open", !isOpen);
+  if (btn) btn.classList.toggle("active", !isOpen);
+}
+
+
+
+// ── Session resume ─────────────────────────────────────────────────────────────
+function handleSessionDrop(e) {
+  e.preventDefault();
+  document.getElementById("resume-upload-zone").classList.remove("drag-over");
+  const file = e.dataTransfer.files[0];
+  if (file) handleSessionFile(file);
+}
+
+function handleSessionFile(file) {
+  if (!file || !file.name.endsWith(".json")) {
+    toast("Please upload a session.json file", true);
+    return;
+  }
+  const zone  = $("resume-upload-zone");
+  const label = $("resume-upload-label");
+  label.innerHTML = "Loading…";
+
+  const fd = new FormData();
+  fd.append("session", file);
+
+  fetch("/load_session", { method: "POST", body: fd })
+    .then(r => r.json())
+    .then(data => {
+      if (data.error) {
+        toast("Could not load session: " + data.error, true);
+        label.innerHTML = '<strong>Choose file</strong> or drag session.json here';
+        return;
+      }
+      zone.classList.add("loaded");
+      label.innerHTML = "✓ " + file.name + " loaded";
+      renderResume(data.session, data.hints);
+    })
+    .catch(err => {
+      toast("Upload failed: " + err, true);
+      label.innerHTML = '<strong>Choose file</strong> or drag session.json here';
+    });
+}
+
+function hydrateState(session) {
+  // Merge loaded session into state with safe defaults for any missing fields
+  const kpiDefaults = {
+    name:"", definition:"", grain:"", grain_custom:"",
+    time_window:"", time_window_custom:"", caveats:"",
+    sql_source_mode:"", sql_playbook_entry:"", sql_pasted:"",
+    sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},
+    pattern_notes:"",
+  };
+
+  state.visual_output     = session.visual_output !== undefined
+    ? session.visual_output
+    : ["Dashboard","Report"].includes(session.output_type || "");  // back-compat
+  state.project_name      = session.project_name      || "";
+  state.description       = session.description       || "";
+  state.owner             = session.owner             || "";
+  state.audience          = session.audience          || [];
+  state.domains           = (session.domains && session.domains.length)
+    ? session.domains
+    : [{therapeutic_area:"", brand:"", indication:[], data_sources:[],
+        key_population:"", known_exclusions:"", market_context:""}];
+  state.vocab             = (session.vocab && session.vocab.length)
+    ? session.vocab
+    : [{term:"",definition:""},{term:"",definition:""}];
+  state.tables_raw        = session.tables_raw        || "";
+  state.validated_tables  = session.validated_tables  || {};
+  state.kpis              = (session.kpis && session.kpis.length)
+    ? session.kpis.map(k => Object.assign({}, kpiDefaults, k))
+    : [Object.assign({}, kpiDefaults)];
+  state.stakeholder_notes = session.stakeholder_notes || "";
+  state.previewFiles      = {};
+}
+
+function renderResume(session, hints) {
+  onHomePage = false;
+  document.querySelector(".progress-wrap").style.display = "none";
+
+  // Hydrate state so all steps are pre-filled when user navigates in
+  hydrateState(session);
+
+  const el = $("main-content");
+
+  const kpis    = (session.kpis || []).filter(k => k && (k.name || k));
+  const domains = (session.domains || []).filter(d => d.therapeutic_area || d.brand);
+  const tables  = Object.keys(session.validated_tables || {}).filter(t =>
+    (session.validated_tables[t] || {}).ok
+  );
+  const pname   = session.project_name || "Unnamed project";
+  const otype   = session.visual_output ? "Visual deliverable" : "Data / SQL";
+  const owner   = session.owner        || "—";
+  const aud     = (session.audience || []).join(", ") || "—";
+
+  const domainSummary = domains.map(d =>
+    [d.therapeutic_area, d.brand].filter(Boolean).join(" · ")
+  ).join(" | ") || "—";
+
+  const kpiSummary = kpis.length
+    ? kpis.map(k => k.name || k).slice(0, 5).join(", ")
+      + (kpis.length > 5 ? ` +${kpis.length - 5} more` : "")
+    : "—";
+
+  const tableSummary = tables.length
+    ? tables.slice(0, 4).join(", ") + (tables.length > 4 ? ` +${tables.length - 4} more` : "")
+    : "None validated";
+
+  const hintBlocks = hints.length
+    ? hints.map(h => `
+      <div class="resume-hint">
+        <div class="resume-hint-icon">⚠️</div>
+        <div class="resume-hint-body">
+          <div class="resume-hint-label">${h.label}</div>
+          <div class="resume-hint-detail">${h.detail}</div>
+        </div>
+        <button class="resume-hint-jump" onclick="jumpToStep(${h.step})">Go to step ${h.step} →</button>
+      </div>`).join("")
+    : `<div style="font-size:13px;color:var(--green);background:var(--green-light);border:1px solid #a3d5b4;border-radius:var(--radius);padding:12px 16px;">
+        ✓ No obvious gaps detected — everything looks complete. Review and generate when ready.
+       </div>`;
+
+  el.innerHTML = `
+  <div class="resume-wrap">
+    <div class="resume-header">
+      <div class="resume-header-icon">🔄</div>
+      <div class="resume-header-text">
+        <h2>Session loaded — ${esc(pname)}</h2>
+        <p>Review what was loaded. Update anything that's changed since the last run, then generate a fresh scaffold.</p>
+      </div>
+    </div>
+
+    <div class="resume-summary">
+      <div class="resume-summary-title">What was loaded</div>
+      <div class="resume-field-grid">
+        <div class="resume-field">
+          <div class="resume-field-label">Project name</div>
+          <div class="resume-field-value">${esc(pname)}</div>
+        </div>
+        <div class="resume-field">
+          <div class="resume-field-label">Output type</div>
+          <div class="resume-field-value">${esc(otype)}</div>
+        </div>
+        <div class="resume-field">
+          <div class="resume-field-label">Owner</div>
+          <div class="resume-field-value">${esc(owner)}</div>
+        </div>
+        <div class="resume-field">
+          <div class="resume-field-label">Audience</div>
+          <div class="resume-field-value ${aud === "—" ? "muted" : ""}">${esc(aud)}</div>
+        </div>
+        <div class="resume-field">
+          <div class="resume-field-label">Domain(s)</div>
+          <div class="resume-field-value ${domainSummary === "—" ? "muted" : ""}">${esc(domainSummary)}</div>
+        </div>
+        <div class="resume-field">
+          <div class="resume-field-label">Validated tables</div>
+          <div class="resume-field-value ${tableSummary === "None validated" ? "muted" : ""}">${esc(tableSummary)}</div>
+        </div>
+        <div class="resume-field" style="grid-column:span 2">
+          <div class="resume-field-label">KPIs (${kpis.length})</div>
+          <div class="resume-field-value ${kpiSummary === "—" ? "muted" : ""}">${esc(kpiSummary)}</div>
+        </div>
+      </div>
+    </div>
+
+    ${hints.length ? `<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--amber);margin-bottom:10px;">Suggested updates</div>` : ""}
+    <div class="resume-hints">${hintBlocks}</div>
+
+    <div class="resume-actions">
+      <button class="btn btn-primary" onclick="jumpToStep(0)">Edit step by step →</button>
+      <button class="btn btn-secondary" onclick="jumpToStep(5)">Skip to completeness check</button>
+      <button class="btn btn-secondary" onclick="jumpToStep(6)">Jump to preview &amp; download</button>
+      <button class="btn btn-secondary" style="margin-left:auto;" onclick="renderHome()">← Load a different session</button>
+    </div>
+  </div>`;
+}
+
+function jumpToStep(stepIdx) {
+  onHomePage = false;
+  document.querySelector(".progress-wrap").style.display = "";
+  goTo(stepIdx);
+}
+
+// ── Home page ─────────────────────────────────────────────────────────────────
+let onHomePage = true;
+
+function renderHome() {
+  onHomePage = true;
+  document.querySelector(".progress-wrap").style.display = "none";
+
+  const el = $('main-content');
+  el.innerHTML = `
+  <div class="home-wrap">
+
+    <div class="home-hero">
+      <div class="home-hero-mark">FP</div>
+      <div class="home-hero-text">
+        <h1>Your Claude Code project,<br><em>ready before you start typing.</em></h1>
+        <p>File Primer generates a structured set of scaffold files — domain context, table metadata, KPI definitions, SQL pattern guidance — wired to your real Redshift tables. Drop them into a Claude Code project and skip the 20-minute context-setting conversation at the start of every analysis.</p>
+
+        <div class="home-split">
+          <div class="home-split-card primary">
+            <h3>🆕 New scaffold</h3>
+            <p>Start from scratch — describe your project, validate tables, define KPIs, and download a fresh set of files.</p>
+            <button class="home-cta" style="margin-top:4px;" onclick="startTool()">
+              Build my scaffold <span class="home-cta-arrow">→</span>
+            </button>
+          </div>
+          <div class="home-split-card">
+            <h3>🔄 Resume from session</h3>
+            <p>Upload a <code style="font-family:var(--mono);font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">session.json</code> from a previous download to pick up where you left off — update time windows, add KPIs, or re-validate tables.</p>
+            <div class="upload-zone" id="resume-upload-zone"
+                 ondragover="event.preventDefault();this.classList.add('drag-over')"
+                 ondragleave="this.classList.remove('drag-over')"
+                 ondrop="handleSessionDrop(event)">
+              <input type="file" accept=".json" onchange="handleSessionFile(this.files[0])">
+              <div class="upload-zone-label" id="resume-upload-label">
+                <strong>Choose file</strong> or drag session.json here
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="home-section-label">How it works</div>
+    <div class="home-steps">
+      <div class="home-step-card">
+        <div class="home-step-num">1</div>
+        <h4>Describe your project</h4>
+        <p>Name the output type, therapeutic area, brand, KPIs, and target tables. Takes about 5 minutes.</p>
+      </div>
+      <div class="home-step-card">
+        <div class="home-step-num">2</div>
+        <h4>Validate against Redshift</h4>
+        <p>File Primer connects to your Redshift instance and pulls live column metadata — DIST keys, SORT keys, types, nullability.</p>
+      </div>
+      <div class="home-step-card">
+        <div class="home-step-num">3</div>
+        <h4>Download your scaffold</h4>
+        <p>A zip of context files drops into your Claude Code project folder. Claude reads them on every session start.</p>
+      </div>
+    </div>
+
+
+    <div class="home-section-label">What changes in Claude Code</div>
+    <div class="prompt-section">
+
+      <div class="prompt-scenario">Scenario 1 — Building a SQL metric from scratch</div>
+      <div class="prompt-pair">
+        <div class="prompt-pair-label without"><span class="dot"></span> Without File Primer</div>
+        <div class="prompt-body without">"I need a rolling 3-month NBRx metric for Jaypirca. The data is in apld_ex.elaad_oncology_masterdata. Grain is one row per HCP per month. Use NPI as the HCP identifier, rx_date as the date column. We only want community oncology HCPs — exclude academic medical centers. Use persistent temp tables, not CTEs, because of WLM abort risk on our Redshift cluster. Brand launched Q3 2023 so filter from July 2023 onwards. Rolling window needs ROWS BETWEEN not RANGE BETWEEN — Redshift doesn't support RANGE with date intervals. Pre-aggregate to monthly grain first before applying the window..."</div>
+        <div class="prompt-pair-label with"><span class="dot"></span> With File Primer</div>
+        <div class="prompt-body with">"Build the NBRx Rolling 3M metric from EXAMPLES.md."</div>
+      </div>
+
+      <div class="prompt-scenario">Scenario 2 — Debugging a row count issue</div>
+      <div class="prompt-pair">
+        <div class="prompt-pair-label without"><span class="dot"></span> Without File Primer</div>
+        <div class="prompt-body without">"My patient count is doubling after I join the masterdata table to the HCP dimension table. I think it's a fan-out issue. The patient table has one row per fill event. The HCP table has one row per NPI. I'm joining on prescriber_npi. Not sure if the HCP table has duplicates or if there's a many-to-many somewhere. Can you help me debug?"</div>
+        <div class="prompt-pair-label with"><span class="dot"></span> With File Primer</div>
+        <div class="prompt-body with">"My patient count is doubling after the join to elaad_dim_provider_plus. Check schema_reference.md for the key structure and apply the deduplication pattern from kpi_definitions.md."</div>
+      </div>
+
+      <div class="prompt-scenario">Scenario 3 — TUA classification for a new time period</div>
+      <div class="prompt-pair">
+        <div class="prompt-pair-label without"><span class="dot"></span> Without File Primer</div>
+        <div class="prompt-body without">"I need to update the TUA classification for Ebglyss through March 2026. TUA stands for Trialist/User/Adopter — it's cumulative, so once an HCP hits a threshold they stay there. Trialist is 1 distinct patient, User is 2-3, Adopter is 4+. Use lb_months = 98 for inception-to-date. The source table is the LAAD masterdata. Dedup on patient-day level before counting — same-day duplicates inflate the count. Don't use CTEs, use persistent temp tables. The HCP identifier is NPI..."</div>
+        <div class="prompt-pair-label with"><span class="dot"></span> With File Primer</div>
+        <div class="prompt-body with">"Refresh the Ebglyss TUA classification through March 2026. Use the thresholds and lb_months in kpi_definitions.md."</div>
+      </div>
+
+    </div>
+
+    <hr class="home-divider">
+
+    <div class="home-section-label">What gets generated</div>
+    <div class="home-files">
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#FBE9E8;">📋</div>
+        <div class="file-card-body">
+          <div class="file-card-name">CLAUDE.md <span class="badge-always">always</span></div>
+          <div class="file-card-trigger">Open at every session start</div>
+          <div class="file-card-desc">The primary context file. Domain rules, brand vocabulary, Redshift conventions, KPIs in scope, and a file inventory. Claude reads this first — it sets the entire project frame.</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#E8EEFA;">🔍</div>
+        <div class="file-card-body">
+          <div class="file-card-name">schema_reference.md <span class="badge-always">always</span></div>
+          <div class="file-card-trigger">When Claude needs column details</div>
+          <div class="file-card-desc">Live column metadata for every validated table — types, DIST/SORT keys, nullability. Stops Claude from hallucinating column names or types.</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#E8F5ED;">📐</div>
+        <div class="file-card-body">
+          <div class="file-card-name">EXAMPLES.md <span class="badge-always">always</span></div>
+          <div class="file-card-trigger">When Claude writes SQL for a KPI</div>
+          <div class="file-card-desc">The primary SQL reference. One query stub per KPI, using your actual table and column names. SQL source comes from your playbook, pasted SQL, or described rules — not auto-generated guesses.</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#F3E8FF;">📖</div>
+        <div class="file-card-body">
+          <div class="file-card-name">kpi_definitions.md <span class="badge-always">always</span></div>
+          <div class="file-card-trigger">When Claude needs a metric definition or pre-flight guidance</div>
+          <div class="file-card-desc">Business definitions, grain, time window, data source, caveats, and pattern notes per KPI. Pattern notes tell Claude what to think about before writing SQL — approach, ordering constraints, pre-steps. If you used "describe rules" mode, exclusions and edge cases are captured here too.</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#F8F8F8;">📄</div>
+        <div class="file-card-body">
+          <div class="file-card-name">README.md <span class="badge-always">always</span></div>
+          <div class="file-card-trigger">Project onboarding</div>
+          <div class="file-card-desc">What the project does, who owns it, data sources, how to run it. Useful when you hand off to a colleague or return to a project after 3 months.</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#E8F5ED;">🎨</div>
+        <div class="file-card-body">
+          <div class="file-card-name">styling_guide.md <span class="badge-conditional">Dashboard / Report</span></div>
+          <div class="file-card-trigger">When Claude builds a visual output</div>
+          <div class="file-card-desc">Lilly brand colors, chart conventions, typography rules, and layout standards. Ensures every chart and card follows BI&A visual standards without you having to re-explain them.</div>
+        </div>
+      </div>
+
+      <div class="file-card">
+        <div class="file-card-icon" style="background:#FBE9E8;">👥</div>
+        <div class="file-card-body">
+          <div class="file-card-name">stakeholder_notes.md <span class="badge-conditional">if notes added</span></div>
+          <div class="file-card-trigger">When Claude writes a stakeholder comm</div>
+          <div class="file-card-desc">Audience, communication preferences, key decisions, and open items. Lets Claude match tone and scope to the right person without you pasting in context each time.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="home-usage-tip">
+      <div class="home-usage-tip-icon">💡</div>
+      <div class="home-usage-tip-body">
+        <strong>How to use these files in Claude Code</strong>
+        <p>Place the downloaded files in your Claude Code project folder. <code>CLAUDE.md</code> loads automatically. For everything else, start your session with:</p>
+        <p><code>"Read EXAMPLES.md and kpi_definitions.md, then help me build [KPI name] using [table name]."</code></p>
+        <p>The more specific you are about which file to read first, the tighter Claude's first response will be. <code>EXAMPLES.md</code> gives it the query shape; <code>kpi_definitions.md</code> gives it the pre-flight guidance and caveats.</p>
+      </div>
+    </div>
+
+    <div style="text-align:center; padding-top: 1rem;">
+      <button class="home-cta" onclick="startTool()">
+        Start a new scaffold <span class="home-cta-arrow">→</span>
+      </button>
+      <div style="margin-top: 12px; font-size: 12px; color: var(--gray-400);">Takes about 5 minutes · Connects to your Redshift instance · Downloads a ready-to-use zip</div>
+    </div>
+
+  </div>`;
+}
+
+function startTool() {
+  onHomePage = false;
+  document.querySelector(".progress-wrap").style.display = "";
+  goTo(0);
+}
+
+// ── Progress bar ─────────────────────────────────────────────────────────────
+function renderProgress() {
+  const el = $("progress-steps");
+  el.innerHTML = STEPS.map((s, i) => {
+    const cls = i === state.currentStep ? "active"
+              : i < state.currentStep ? "done" : "";
+    return `<div class="step-tab ${cls}">
+      <div class="step-num">${i < state.currentStep ? "✓" : i + 1}</div>
+      <div class="step-label">${s.label}</div>
+    </div>`;
+  }).join("");
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function goTo(idx) {
+  state.currentStep = idx;
+  renderProgress();
+  renderStep();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function next() { goTo(state.currentStep + 1); }
+function back() { goTo(state.currentStep - 1); }
+
+// ── Step renderers ───────────────────────────────────────────────────────────
+function renderStep() {
+  const el = $("main-content");
+  const renderers = [
+    renderMode, renderDetails, renderDomain, renderTables,
+    renderKPIs, renderValidation, renderPreview,
+  ];
+  el.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = "step-panel";
+  el.appendChild(div);
+  renderers[state.currentStep](div);
+}
+
+// ── Step 1: Output type ──────────────────────────────────────────────────────
+function renderMode(el) {
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">About this project</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">File Primer generates the full scaffold for every project. One optional file — <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">styling_guide.md</code> — is only useful if your deliverable is a visual output.</div>
+        <button class="info-btn" id="btn-info-mode" onclick="toggleInfo('info-mode')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-mode">
+        <strong>What always gets generated</strong>
+        <ul>
+          <li><code>CLAUDE.md</code> — primary context file, loads at every Claude Code session start</li>
+          <li><code>schema_reference.md</code> — live column metadata from your validated Redshift tables</li>
+          <li><code>kpi_definitions.md</code> — business definitions, grain, caveats, and pattern notes per KPI</li>
+          <li><code>EXAMPLES.md</code> — query stubs wired to your real table and column names</li>
+          <li><code>README.md</code> — project context, data sources, how to run</li>
+          <li><code>session.json</code> — input snapshot for future refreshes</li>
+        </ul>
+        <strong style="margin-top:10px;">What the checkbox adds</strong>
+        <ul>
+          <li><code>styling_guide.md</code> — Lilly brand colors, chart conventions, typography rules. Only relevant if Claude will be generating a Tableau dashboard, HTML report, or PowerPoint.</li>
+        </ul>
+      </div>
+
+      <div style="margin: 1.5rem 0 1rem;">
+        <label style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;padding:16px;border:1.5px solid var(--gray-200);border-radius:var(--radius);transition:border-color 0.15s;background:#fff;"
+               id="visual-label"
+               onclick="toggleVisual()">
+          <div style="margin-top:1px;flex-shrink:0;">
+            <div style="width:20px;height:20px;border-radius:5px;border:1.5px solid ${state.visual_output ? 'var(--red)' : 'var(--gray-200)'};background:${state.visual_output ? 'var(--red)' : '#fff'};display:flex;align-items:center;justify-content:center;transition:all 0.15s;" id="visual-checkbox">
+              ${state.visual_output ? '<span style="color:#fff;font-size:13px;font-weight:700;">✓</span>' : ''}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:3px;">This project produces a visual deliverable</div>
+            <div style="font-size:12px;color:var(--gray-600);line-height:1.5;">Tableau dashboard, HTML report, or PowerPoint deck — adds <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px">styling_guide.md</code> with Lilly brand colors and chart conventions.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="next()">Continue →</button>
+      </div>
+    </div>`;
+}
+
+function toggleVisual() {
+  state.visual_output = !state.visual_output;
+  renderStep();
+}
+
+// ── Step 2: Project details ──────────────────────────────────────────────────
+function renderDetails(el) {
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Project details</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">These fields populate <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">CLAUDE.md</code> and <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">README.md</code> — the more context, the better the scaffold.</div>
+        <button class="info-btn" id="btn-info-details" onclick="toggleInfo('info-details')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-details">
+        <strong>Granularity guidance</strong>
+        <ul>
+          <li><strong>Project name</strong> — be specific. "Jaypirca CLL HCP Opportunity Q2 2026" is more useful than "BTK analysis". Claude uses this in file headers and temp table naming.</li>
+          <li><strong>Description</strong> — one or two sentences: what question is this answering and what decision does it support? e.g. "Identifies high-opportunity HCPs ahead of anticipated 1L CLL launch using BTK decile and patient funnel data."</li>
+          <li><strong>Owner / DRI</strong> — your WWID or name. Appears in README revision history.</li>
+          <li><strong>Audience</strong> — select all that apply. This shapes tone and framing in <code>stakeholder_notes.md</code> and how Claude pitches complexity in explanations.</li>
+        </ul>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Project name <span>*</span></label>
+        <input type="text" id="f-name" placeholder="e.g. Jaypirca CLL HCP Opportunity Analysis"
+               value="${esc(state.project_name)}" oninput="state.project_name = this.value">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Description</label>
+        <textarea id="f-desc" rows="3" placeholder="What question is this project answering? What decision does it support?"
+                  oninput="state.description = this.value">${esc(state.description)}</textarea>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Owner / DRI</label>
+        <input type="text" id="f-owner" placeholder="e.g. l023824 / Adhira"
+               value="${esc(state.owner)}" oninput="state.owner = this.value">
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Audience</label>
+        <div class="chip-group" id="audience-chips">
+          ${AUDIENCES.map(a => `
+            <div class="chip ${state.audience.includes(a) ? "selected" : ""}"
+                 onclick="toggleAudience('${a}', this)">${a}</div>
+          `).join("")}
+        </div>
+        <div class="field-hint">Select all that apply. This shapes the communication style of generated notes.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="back()">← Back</button>
+        <button class="btn btn-primary" id="btn-det-next" onclick="detailsNext()"
+          ${!state.project_name ? "disabled" : ""}>Continue →</button>
+        <button class="btn btn-ghost" onclick="reset()">Start over</button>
+      </div>
+    </div>`;
+
+  $("f-name").addEventListener("input", () => {
+    $("btn-det-next").disabled = !state.project_name.trim();
+  });
+}
+
+function toggleAudience(a, el) {
+  if (state.audience.includes(a)) {
+    state.audience = state.audience.filter(x => x !== a);
+    el.classList.remove("selected");
+  } else {
+    state.audience.push(a);
+    el.classList.add("selected");
+  }
+}
+
+function detailsNext() {
+  if (!state.project_name.trim()) { toast("Project name is required", true); return; }
+  next();
+}
+
+// ── Step 2b: Domain context ──────────────────────────────────────────────────
+
+const DOMAIN_CONFIG = {
+  "Oncology":       ["CLL", "MCL", "eBC", "mBC", "Lung Cancer", "Multiple Myeloma", "Prostate Cancer", "Other"],
+  "Immunology":     ["Atopic Dermatitis", "Psoriasis", "Psoriatic Arthritis", "Lupus", "Rheumatoid Arthritis", "IBD", "Other"],
+  "Neuroscience":   ["Migraine", "Alzheimer's Disease", "Parkinson's Disease", "Multiple Sclerosis", "Other"],
+  "Cardiovascular": ["Heart Failure", "Atrial Fibrillation", "Hypertension", "Other"],
+  "Metabolic":      ["Obesity", "Diabetes", "Sleep Apnea", "Other"],
+};
+
+const DATA_SOURCES = [
+  "LAAD", "ELAAD", "IQVIA MMIT (Oncology)", "IQVIA MMIT (Plans)",
+  "IQVIA Claims", "Komodo", "MiBA", "Guardant 360", "Symphony Health", "APLD", "Other",
+];
+
+function renderDomain(el) {
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Domain context</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">All fields here flow directly into <strong>CLAUDE.md</strong> — therapeutic area, market context, data sources, population scope, and business vocabulary. Add a second domain for cross-TA projects.</div>
+        <button class="info-btn" id="btn-info-domain" onclick="toggleInfo('info-domain')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-domain">
+        <strong>Granularity guidance</strong>
+        <ul>
+          <li><strong>Therapeutic area + brand</strong> — select from the dropdown. Indication chips appear conditionally based on TA. Select all indications in scope for this project.</li>
+          <li><strong>Data sources</strong> — select every source this project touches. Each source gets a brief context note in <code>CLAUDE.md</code> (e.g. LAAD = longitudinal patient-level claims, ELAAD = enhanced with HCP attribution). Claude uses this to know which tables are authoritative for which questions.</li>
+          <li><strong>Key population</strong> — the patient or HCP universe. Be specific: "CLL patients with ≥1 BTKi claim in the last 24 months, excluding clinical trial enrollees" is better than "CLL patients". This becomes the population definition Claude applies by default.</li>
+          <li><strong>Known exclusions</strong> — anything explicitly out of scope. Specialty pharmacy, payer types, geographies, data sources. Claude will apply these as default filters.</li>
+          <li><strong>Business vocabulary</strong> — define project-specific terms. e.g. "Active prescriber = HCP with ≥1 NBRx in rolling 3M". These go into a vocab table in <code>CLAUDE.md</code> so Claude never guesses at internal terminology.</li>
+          <li><strong>Multiple domains</strong> — add a second block for cross-TA overlap analyses (e.g. IBD × Obesity, CLL × MCL). Each domain gets its own section in <code>CLAUDE.md</code>.</li>
+        </ul>
+      </div>
+
+      <div id="domain-blocks">
+        ${(state.domains||[]).map((d, i) => domainBlock(d, i)).join("")}
+      </div>
+
+      ${(state.domains||[]).length < 3 ? `
+      <button class="btn btn-secondary" style="margin-bottom:1rem" onclick="addDomain()">+ Add domain</button>
+      ` : ""}
+
+      <div class="divider"></div>
+
+      <div class="field-group">
+        <label class="field-label">Business vocabulary</label>
+        <div class="field-hint" style="margin-bottom:10px;">
+          Define project-specific terms so Claude never has to ask. e.g. "NBRx = New-to-Brand Rx",
+          "BTK decile = volume decile based on Acalabrutinib/Zanubrutinib/Ibrutinib NBRx".
+          These apply across all domains.
+        </div>
+        <div id="vocab-fields">
+          ${(state.vocab||[]).map((v,i) => vocabRow(v,i)).join("")}
+        </div>
+        <button class="btn btn-secondary" style="margin-top:6px" onclick="addVocab()">+ Add term</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="back()">← Back</button>
+        <button class="btn btn-primary" onclick="next()">Continue →</button>
+        <button class="btn btn-ghost" onclick="reset()">Start over</button>
+      </div>
+    </div>`;
+}
+
+function buildPreviewCards(d, i) {
+  const activeIndications = (d.indication || []).filter(x => x !== "Other");
+  if (activeIndications.length === 0) return `
+    <div style="background:var(--gray-50);border:1px dashed var(--gray-200);border-radius:var(--radius);
+                padding:14px 16px;text-align:center;color:var(--gray-400);font-size:13px;margin-top:4px;">
+      Select an indication above to see pre-filled context
+    </div>`;
+
+  return activeIndications.map(function(ind) {
+    const disease  = (d.disease_state    || {})[ind] || "";
+    const keyPop   = (d.key_population   || {})[ind] || "";
+    const mktCtx   = (d.market_context   || {})[ind] || "";
+    const drugPerf = (d.drug_performance || {})[ind] || "";
+    const hasContent = disease || keyPop || mktCtx || drugPerf;
+
+    return `
+    <div style="border:1px solid var(--gray-200);border-radius:var(--radius);
+                background:#fff;overflow:hidden;margin-top:8px;">
+      <div style="background:var(--gray-100);padding:8px 14px;display:flex;
+                  align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;
+                     letter-spacing:0.07em;color:var(--gray-600);">${ind}</span>
+        ${!hasContent ? `<span style="font-size:11px;color:var(--gray-400);font-style:italic;">
+          No pre-baked content for this indication</span>` : ""}
+      </div>
+      ${hasContent ? `
+      <div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">
+        ${disease ? `<div>
+          <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.07em;color:var(--red);margin-bottom:4px;">Disease state</div>
+          <div style="font-size:12.5px;color:var(--gray-600);line-height:1.55;">${esc(disease)}</div>
+        </div>` : ""}
+        ${keyPop ? `<div>
+          <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.07em;color:var(--red);margin-bottom:4px;">Key population</div>
+          <div style="font-size:12.5px;color:var(--gray-600);line-height:1.55;">${esc(keyPop)}</div>
+        </div>` : ""}
+        ${mktCtx ? `<div>
+          <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.07em;color:var(--red);margin-bottom:4px;">Market context</div>
+          <div style="font-size:12.5px;color:var(--gray-600);line-height:1.55;">${esc(mktCtx)}</div>
+        </div>` : ""}
+        ${drugPerf ? `<div>
+          <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;
+                      letter-spacing:0.07em;color:var(--red);margin-bottom:4px;">Drug performance</div>
+          <div style="font-size:12.5px;color:var(--gray-600);line-height:1.55;">${esc(drugPerf)}</div>
+        </div>` : ""}
+      </div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+function domainBlock(d, i) {
+  const ta = d.therapeutic_area || "";
+  const indications = ta && DOMAIN_CONFIG[ta] ? DOMAIN_CONFIG[ta] : [];
+  const isFirst = i === 0;
+  const activeIndications = (d.indication || []).filter(x => x !== "Other");
+
+  return `
+    <div style="border:1px solid var(--gray-200);border-radius:var(--radius);
+                padding:14px 16px;margin-bottom:14px;background:#fff;">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-size:11px;font-weight:600;color:var(--gray-400);
+                     text-transform:uppercase;letter-spacing:0.5px;">
+          Domain ${i+1}${!isFirst ? " — cross-TA" : ""}
+        </span>
+        ${!isFirst ? `<button onclick="removeDomain(${i})"
+          style="background:none;border:none;cursor:pointer;font-size:12px;
+                 color:var(--gray-400);">✕ Remove</button>` : ""}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">Therapeutic area</label>
+          <select onchange="selectDomainTA(${i}, this.value)">
+            <option value="">— select —</option>
+            ${Object.keys(DOMAIN_CONFIG).map(t =>
+              `<option value="${t}" ${ta===t?"selected":""}>${t}</option>`
+            ).join("")}
+          </select>
+        </div>
+        <div class="field-group" style="margin-bottom:0;">
+          <label class="field-label">Brand / drug</label>
+          <input type="text" placeholder="e.g. Jaypirca, Ebglyss"
+                 value="${esc(d.brand||'')}"
+                 oninput="state.domains[${i}].brand = this.value">
+        </div>
+      </div>
+
+      ${indications.length ? `
+      <div class="field-group" style="margin-bottom:14px;">
+        <label class="field-label">Indication(s)</label>
+        <div class="chip-group">
+          ${indications.map(ind => `
+            <div class="chip ${(d.indication||[]).includes(ind) ? "selected" : ""}"
+                 onclick="toggleDomainChip(${i}, 'indication', '${ind}', this)">${ind}</div>
+          `).join("")}
+        </div>
+        ${(d.indication||[]).includes("Other") ? `
+        <input type="text" placeholder="Describe the indication..."
+               value="${esc(d.indication_other||'')}"
+               oninput="state.domains[${i}].indication_other = this.value"
+               style="margin-top:8px;font-size:13px;">
+        ` : ""}
+      </div>` : `
+      ${ta ? `<div style="font-size:12.5px;color:var(--gray-400);font-style:italic;margin-bottom:12px;">
+        No indications configured for ${ta}</div>` : ""}
+      `}
+
+      <div style="margin-top:4px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;
+                    letter-spacing:0.07em;color:var(--gray-600);margin-bottom:6px;">
+          Context preview
+          <span style="font-weight:400;font-style:italic;text-transform:none;letter-spacing:0;
+                       color:var(--gray-400);font-size:11px;"> — auto-filled from backend, flows into CLAUDE.md</span>
+        </div>
+        ${buildPreviewCards(d, i)}
+      </div>
+
+      <div class="field-group" style="margin-top:14px;margin-bottom:0;">
+        <label class="field-label">Additional context
+          <span style="font-weight:400;font-style:italic;text-transform:none;
+                       color:var(--gray-400);font-size:11px;"> — optional</span>
+        </label>
+        <textarea rows="2"
+          placeholder="Anything specific to your project not covered above — e.g. a recent label update, a specific patient sub-population, a market event."
+          oninput="state.domains[${i}].additional_context = this.value"
+          style="font-size:13px;">${esc(d.additional_context||'')}</textarea>
+        <div class="field-hint">Appended to the domain section in CLAUDE.md.</div>
+      </div>
+
+    </div>`;
+}
+
+function selectDomainTA(i, value) {
+  state.domains[i].therapeutic_area = value;
+  state.domains[i].indication       = [];
+  // Clear all pre-baked content dicts when TA changes
+  state.domains[i].disease_state    = {};
+  state.domains[i].market_context   = {};
+  state.domains[i].key_population   = {};
+  state.domains[i].drug_performance = {};
+  renderStep();
+}
+
+function toggleDomainChip(i, field, value, el) {
+  if (!Array.isArray(state.domains[i][field])) state.domains[i][field] = [];
+  if (state.domains[i][field].includes(value)) {
+    state.domains[i][field] = state.domains[i][field].filter(x => x !== value);
+    // Deselected — keep content in dict but mark hidden so user can reselect
+    // We intentionally do NOT delete the key
+  } else {
+    state.domains[i][field].push(value);
+    // Newly selected indication — fetch context
+    if (field === "indication" && value !== "Other") {
+      fetchDomainContext(i, value);
+    }
+  }
+  renderStep();
+}
+
+async function fetchDomainContext(i, indication) {
+  const d  = state.domains[i];
+  const ta = d.therapeutic_area || "";
+  if (!ta || !indication) return;
+
+  try {
+    const res = await fetch(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`);
+    if (!res.ok) {
+      console.warn(`fetchDomainContext: server returned ${res.status} for ${ta}/${indication}`);
+      return;
+    }
+    const data = await res.json();
+    console.log(`fetchDomainContext: received data for ${ta}/${indication}`, data);
+
+    // Ensure content dicts exist
+    if (typeof state.domains[i].disease_state    !== "object") state.domains[i].disease_state    = {};
+    if (typeof state.domains[i].market_context   !== "object") state.domains[i].market_context   = {};
+    if (typeof state.domains[i].key_population   !== "object") state.domains[i].key_population   = {};
+    if (typeof state.domains[i].drug_performance !== "object") state.domains[i].drug_performance = {};
+
+    // Only pre-fill if this indication has no content yet — never overwrite user edits
+    if (!state.domains[i].disease_state[indication]    && data.disease_state)    state.domains[i].disease_state[indication]    = data.disease_state;
+    if (!state.domains[i].market_context[indication]   && data.market_context)   state.domains[i].market_context[indication]   = data.market_context;
+    if (!state.domains[i].key_population[indication]   && data.key_population)   state.domains[i].key_population[indication]   = data.key_population;
+    if (!state.domains[i].drug_performance[indication] && data.drug_performance) state.domains[i].drug_performance[indication] = data.drug_performance;
+
+    console.log(`fetchDomainContext: state updated, re-rendering`);
+    renderStep();
+  } catch(e) {
+    console.error(`fetchDomainContext error for ${ta}/${indication}:`, e);
+  }
+}
+
+function addDomain() {
+  if (!state.domains) state.domains = [];
+  if (state.domains.length >= 3) return;
+  state.domains.push({therapeutic_area:"", brand:"", indication:[], indication_other:"", data_sources:[], data_sources_other:"", key_population:{}, known_exclusions:"", market_context:{}, disease_state:{}, drug_performance:{}, additional_context:""});
+  renderStep();
+}
+
+function removeDomain(i) {
+  state.domains.splice(i, 1);
+  renderStep();
+}
+
+function vocabRow(v, i) {
+  return `<div style="display:grid;grid-template-columns:1fr 2fr 24px;gap:8px;margin-bottom:8px;align-items:center;">
+    <input type="text" placeholder="Term (e.g. NBRx)"
+           value="${esc(v.term||'')}" oninput="state.vocab[${i}].term = this.value"
+           style="font-size:13px;">
+    <input type="text" placeholder="Definition"
+           value="${esc(v.definition||'')}" oninput="state.vocab[${i}].definition = this.value"
+           style="font-size:13px;">
+    ${i >= 2 ? `<button onclick="removeVocab(${i})"
+      style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:16px;padding:0;">✕</button>` : "<span></span>"}
+  </div>`;
+}
+
+function addVocab() {
+  if (!state.vocab) state.vocab = [];
+  state.vocab.push({term:"", definition:""});
+  const container = $("vocab-fields");
+  const i = state.vocab.length - 1;
+  const div = document.createElement("div");
+  div.innerHTML = vocabRow({term:"",definition:""}, i);
+  container.appendChild(div.firstElementChild);
+}
+
+function removeVocab(i) {
+  state.vocab.splice(i, 1);
+  renderStep();
+}
+
+// ── Step 3: Tables — with inline validation ───────────────────────────────────
+function renderTables(el) {
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Redshift tables</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">Enter tables as <code style="background:var(--gray-100);padding:1px 5px;border-radius:4px;font-size:12px">schema.table_name</code>, one per line. Validate to confirm access and pull live column metadata.</div>
+        <button class="info-btn" id="btn-info-tables" onclick="toggleInfo('info-tables')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-tables">
+        <strong>Granularity guidance</strong>
+        <ul>
+          <li><strong>Which tables to include</strong> — add every table your SQL will touch, including dimension/lookup tables. Column metadata from all validated tables feeds into <code>schema_reference.md</code> and is used to substitute real column names into <code>EXAMPLES.md</code>.</li>
+          <li><strong>Validation</strong> — connects to your Redshift instance and reads <code>pg_catalog.pg_attribute</code>. No data is read, only schema metadata. Validation is non-blocking — warnings don't prevent download.</li>
+          <li><strong>What the metadata cards show</strong> — DISTKEY (the column Redshift uses for node distribution, important for join performance), SORTKEY (ordering for range scans), NOT NULL constraints, and approximate row count from <code>pg_class.reltuples</code>.</li>
+          <li><strong>If a table fails validation</strong> — check schema spelling and access permissions. The scaffold still generates; <code>schema_reference.md</code> will note the failure and column names will fall back to placeholders in <code>EXAMPLES.md</code>.</li>
+        </ul>
+      </div>
+
+      <div class="field-group">
+        <label class="field-label">Tables <span>*</span></label>
+        <div class="table-input-row">
+          <textarea id="f-tables" rows="4" placeholder="imm.ebglyss_patients&#10;obu.jaypirca_hcp_base&#10;obu.laad_prescriptions"
+                    style="font-family: var(--mono); font-size:13px;"
+                    oninput="state.tables_raw = this.value">${esc(state.tables_raw)}</textarea>
+          <button class="validate-btn" id="btn-validate" onclick="runValidation()">
+            <span id="val-spinner" class="spinner"></span>
+            <span id="val-btn-label">Validate tables</span>
+          </button>
+        </div>
+        <div class="field-hint">Validation fetches real column metadata from Redshift using your credentials. Non-blocking — you can proceed without it.</div>
+      </div>
+
+      <div id="val-results-area"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="back()">← Back</button>
+        <button class="btn btn-primary" id="btn-tables-next" onclick="tablesNext()"
+          ${!state.tables_raw.trim() ? "disabled" : ""}>Continue →</button>
+        <button class="btn btn-ghost" onclick="reset()">Start over</button>
+      </div>
+    </div>`;
+
+  $("f-tables").addEventListener("input", () => {
+    $("btn-tables-next").disabled = !state.tables_raw.trim();
+  });
+
+  // Restore validation results if we navigated back
+  if (Object.keys(state.validated_tables).length > 0) {
+    renderValResults(state.validated_tables);
+  }
+}
+
+async function runValidation() {
+  const raw = state.tables_raw.trim();
+  if (!raw) { toast("Enter at least one table first", true); return; }
+
+  const tables = raw.split(/[\n,]+/).map(t => t.trim()).filter(t => t && t.includes("."));
+  if (!tables.length) { toast("No valid schema.table entries found", true); return; }
+
+  const btn = $("btn-validate");
+  const spinner = $("val-spinner");
+  const label = $("val-btn-label");
+  btn.disabled = true;
+  spinner.style.display = "block";
+  label.textContent = "Validating…";
+
+  try {
+    const resp = await fetch("/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tables }),
+    });
+    if (!resp.ok) {
+      const e = await resp.json();
+      toast("Validation error: " + (e.error || resp.statusText), true);
+      return;
+    }
+    const data = await resp.json();
+    state.validated_tables = data.results;
+    renderValResults(data.results);
+    const okCount = Object.values(data.results).filter(r => r.ok).length;
+    toast(`Validated ${okCount}/${tables.length} tables — schema_reference.md will include real column data ✓`);
+  } catch (err) {
+    toast("Network error: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = "none";
+    label.textContent = "Re-validate";
+  }
+}
+
+function renderValResults(results) {
+  const area = $("val-results-area");
+  if (!area) return;
+  const entries = Object.entries(results);
+  if (!entries.length) { area.innerHTML = ""; return; }
+
+  let html = '<div class="val-results">';
+  for (const [tableName, meta] of entries) {
+    if (!meta.ok) {
+      html += `
+        <div class="val-card err">
+          <div class="val-card-header">
+            <span>${tableName}</span>
+            <span class="val-badge">Error</span>
+            <span class="val-card-meta">${meta.error || "unknown"}</span>
+          </div>
+        </div>`;
+      continue;
+    }
+    const cols = meta.columns || [];
+    const rowStr = meta.row_count >= 0
+      ? meta.row_count.toLocaleString() + " rows (approx)"
+      : "row count unavailable";
+    const colId = "col-" + tableName.replace(/\./g, "-");
+    html += `
+      <div class="val-card ok">
+        <div class="val-card-header" onclick="toggleColPanel('${colId}')">
+          <span>${tableName}</span>
+          <span class="val-badge">OK</span>
+          <span class="val-card-meta">${cols.length} columns · ${rowStr}</span>
+          <span class="val-card-toggle" id="${colId}-icon">▼</span>
+        </div>
+        <div class="val-card-body" id="${colId}">
+          <table class="col-table">
+            <thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nullable</th><th>Keys</th></tr></thead>
+            <tbody>
+              ${cols.map((c, i) => {
+                const keys = [];
+                if (c.distkey) keys.push('<span class="badge-dist">DIST</span>');
+                if (c.sortkey > 0) keys.push(`<span class="badge-sort">SORT${c.sortkey}</span>`);
+                if (!c.nullable) keys.push('<span class="badge-nn">NOT NULL</span>');
+                return `<tr>
+                  <td style="color:var(--gray-400)">${i + 1}</td>
+                  <td><strong>${c.name}</strong></td>
+                  <td>${c.type}</td>
+                  <td>${c.nullable ? "Yes" : "No"}</td>
+                  <td>${keys.join(" ")}</td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+  html += "</div>";
+  area.innerHTML = html;
+}
+
+function toggleColPanel(id) {
+  const body = $(id);
+  const icon = $(id + "-icon");
+  if (!body) return;
+  body.classList.toggle("open");
+  if (icon) icon.textContent = body.classList.contains("open") ? "▲" : "▼";
+}
+
+function tablesNext() {
+  if (!state.tables_raw.trim()) { toast("Enter at least one table", true); return; }
+  next();
+}
+
+// ── Step 4: KPIs ─────────────────────────────────────────────────────────────
+function renderKPIs(el) {
+  while (state.kpis.length < 3) state.kpis.push({name:"",definition:""});
+
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">KPIs in scope</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">List the metrics this project tracks. All fields flow into <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">kpi_definitions.md</code> and <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">EXAMPLES.md</code>.</div>
+        <button class="info-btn" id="btn-info-kpis" onclick="toggleInfo('info-kpis')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-kpis">
+        <strong>Field-by-field guidance</strong>
+        <ul>
+          <li><strong>KPI name</strong> — the canonical label your team uses. e.g. "NBRx Rolling 3M" not "new prescriptions". This becomes the section header in <code>kpi_definitions.md</code> and the example stub label in <code>EXAMPLES.md</code>.</li>
+          <li><strong>Business definition</strong> — one sentence: what does this measure and why does it matter? e.g. "Count of unique patients with a first Jaypirca prescription in the rolling 3-month window, used to track new patient uptake." Avoid SQL jargon here — this is for the business reader.</li>
+          <li><strong>Grain</strong> — one row per what? "One row per HCP per month" or "one row per patient" are the common choices. This shapes the dedup logic Claude applies. Use Custom for non-standard grains.</li>
+          <li><strong>Time window</strong> — rolling 3M, rolling 12M, inception-to-date, point-in-time, etc. Be explicit — "rolling 12M ending last complete month" is clearer than "last year".</li>
+          <li><strong>Known caveats</strong> — data lag, population gaps, truncation risk, channel exclusions. e.g. "LAAD claims lag ~6 weeks; most recent month should be excluded from trend reporting."</li>
+          <li><strong>Pattern notes</strong> — optional pre-flight for Claude. e.g. "Pre-aggregate to monthly grain before applying rolling window. Use ROWS BETWEEN not RANGE BETWEEN on Redshift." This goes directly into <code>kpi_definitions.md</code> so Claude reads it before writing any SQL for this metric.</li>
+          <li><strong>SQL logic</strong> — expand the section to choose: pick from your playbook, paste existing SQL, or describe the rules in structured fields. This populates the query stub in <code>EXAMPLES.md</code>.</li>
+        </ul>
+      </div>
+
+      <div id="kpi-fields">
+        ${state.kpis.map((k, i) => kpiBlock(k, i)).join("")}
+      </div>
+
+      <button class="btn btn-secondary" style="margin-bottom:1rem" onclick="addKPI()">+ Add KPI</button>
+
+      <div class="divider"></div>
+
+      <div class="field-group">
+        <label class="field-label">Stakeholder notes</label>
+        <textarea rows="3" placeholder="Any context useful for Claude — stakeholder priorities, known sensitivities, prior analyses to reference..."
+                  oninput="state.stakeholder_notes = this.value">${esc(state.stakeholder_notes)}</textarea>
+        <div class="field-hint">Optional. Populates stakeholder_notes.md if filled in.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="back()">← Back</button>
+        <button class="btn btn-primary" onclick="next()">Continue →</button>
+        <button class="btn btn-ghost" onclick="reset()">Start over</button>
+      </div>
+    </div>`;
+}
+
+// ── Playbook entries with keyword matching ────────────────────────────────────
+const PLAYBOOK = [
+  { id:"ex1",  label:"Diabetes patient summary with claims" },
+  { id:"ex2",  label:"Obesity + diabetes comorbidity flag" },
+  { id:"ex3",  label:"Monthly claims trend" },
+  { id:"ex4",  label:"Top 10 highest-cost patients" },
+  { id:"ex5",  label:"Activity call funnel" },
+  { id:"ex6",  label:"Power BI DAX rolling 3-month paid claims" },
+  { id:"ex7",  label:"Tableau LOD average claims per customer by region" },
+  { id:"ex8",  label:"Rolling 6-month NBRx (BTK product)" },
+  { id:"ex9",  label:"NBRx period-over-period growth — HCP level" },
+  { id:"ex10", label:"NBRx period-over-period growth — market level" },
+  { id:"ex11", label:"HCP account type segmentation" },
+  { id:"ex12", label:"SoM bucket classification and concordance by regimen" },
+  { id:"ex13", label:"Trialists, Users, and Adopters (TUA) by HCP × month" },
+  { id:"ex14", label:"Net new HCPs per month" },
+  { id:"ex15", label:"Dosing schedule classification by product" },
+  { id:"ex16", label:"Mode of administration classification by product" },
+  { id:"ex17", label:"HCPs who received a promotional detail for a given brand" },
+  { id:"ex18", label:"HCPs who wrote NBRx for a specific patient age group" },
+  { id:"ex19", label:"Cross-TA patient overlap analysis" },
+];
+
+function matchedPlaybook(kpiName) {
+  return PLAYBOOK;
+}
+
+function buildPlaybookOptions(kpiName, currentEntry) {
+  let html = `<option value="">— select —</option>`;
+  html += PLAYBOOK.map(p =>
+    `<option value="${p.id}" ${currentEntry === p.id ? "selected" : ""}>${p.label}</option>`
+  ).join("");
+  return html;
+}
+
+function kpiBlock(k, i) {
+  const twOpts = ["","Rolling 12M","Rolling 6M","Rolling 3M","Inception-to-date","Point-in-time snapshot","YTD","Custom date range"];
+  const isFirst = i === 0;
+  const headerLabel = (k.name||"").trim() || `KPI ${i+1}`;
+  const mode = k.sql_source_mode || "";
+  const rules = k.sql_rules || {};
+  const pb = matchedPlaybook(k.name);
+
+  // Collapsed wrapper for KPI 2+
+  const collapseId = `kpi-collapse-${i}`;
+  const bodyId = `kpi-body-${i}`;
+
+  return `
+    <div class="kpi-block" id="${collapseId}" style="border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:12px;background:#fff;overflow:hidden;">
+
+      ${!isFirst ? `
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;user-select:none;background:var(--gray-50);"
+           onclick="toggleKpiCollapse(${i})">
+        <span style="font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;">KPI ${i+1}</span>
+        <span id="kpi-header-name-${i}" style="font-size:13px;font-weight:500;color:var(--gray-800);margin-left:4px;">${esc(headerLabel)}</span>
+        <span id="kpi-chevron-${i}" style="margin-left:auto;font-size:12px;color:var(--gray-400);">${k._open ? "▲" : "▼"}</span>
+        ${i >= 3 ? `<button onclick="event.stopPropagation();removeKPI(${i})" style="margin-left:8px;background:none;border:none;cursor:pointer;font-size:12px;color:var(--gray-400);">✕</button>` : ""}
+      </div>
+      ` : `
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 0 16px;">
+        <span style="font-size:11px;font-weight:600;color:var(--gray-400);text-transform:uppercase;letter-spacing:0.5px;">KPI ${i+1}</span>
+        ${i >= 3 ? `<button onclick="removeKPI(${i})" style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:12px;color:var(--gray-400);">✕ Remove</button>` : ""}
+      </div>
+      `}
+
+      <div id="${bodyId}" style="padding:12px 16px 14px;${!isFirst && !k._open ? 'display:none;' : ''}">
+
+        <div class="field-group" style="margin-bottom:10px;">
+          <label class="field-label">Metric name</label>
+          <input type="text" value="${esc(k.name||"")}" placeholder="e.g. Trialist Rate"
+                 oninput="state.kpis[${i}].name = this.value; updateKpiHeader(${i}, this.value);">
+        </div>
+
+        <div class="field-group" style="margin-bottom:10px;">
+          <label class="field-label">Business definition</label>
+          <textarea rows="2" placeholder="e.g. % of target HCPs who have written ≥1 Rx since launch. Numerator: HCPs with ≥1 Rx. Denominator: total target universe."
+                    oninput="state.kpis[${i}].definition = this.value"
+                    style="font-size:13px;">${esc(k.definition||"")}</textarea>
+          <div class="field-hint">Plain English — what it measures, numerator, denominator.</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">Grain</label>
+            <select id="grain-select-${i}" oninput="handleGrainSelect(${i}, this.value)">
+              ${["","patient","HCP / NPI","HCP × month","month","territory","claim / fill","Custom"].map(o =>
+                `<option value="${o}" ${(k.grain||"")=== o ? "selected":""}>${o || "— select —"}</option>`
+              ).join("")}
+            </select>
+            <input type="text" id="grain-custom-${i}"
+                   placeholder="e.g. HCP × BTK decile"
+                   value="${esc(k.grain_custom||"")}"
+                   oninput="state.kpis[${i}].grain_custom = this.value"
+                   style="margin-top:6px;display:${(k.grain||"")==='Custom'?'block':'none'};">
+            <div class="field-hint">One row per what?</div>
+          </div>
+          <div class="field-group" style="margin-bottom:0;">
+            <label class="field-label">Time window</label>
+            <select id="tw-select-${i}" oninput="handleTwSelect(${i}, this.value)">
+              ${twOpts.map(o => `<option value="${o}" ${(k.time_window||"")=== o ? "selected":""}>${o || "— select —"}</option>`).join("")}
+            </select>
+            <input type="text" id="tw-custom-${i}"
+                   placeholder="e.g. 2024-01-01 to 2026-03-31"
+                   value="${esc((k.time_window_custom)||"")}"
+                   oninput="state.kpis[${i}].time_window_custom = this.value"
+                   style="margin-top:6px;display:${(k.time_window||"")==='Custom date range'?'block':'none'};">
+            <div class="field-hint">Lookback or accumulation logic.</div>
+          </div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:10px;">
+          <label class="field-label">Known caveats</label>
+          <textarea rows="2" placeholder="e.g. Most recent month subject to data lag (~2 week delay). Excludes specialty pharmacy channel."
+                    oninput="state.kpis[${i}].caveats = this.value"
+                    style="font-size:13px;">${esc(k.caveats||"")}</textarea>
+          <div class="field-hint">Data lag, exclusions, population gaps, truncation risk.</div>
+        </div>
+
+        <div class="field-group" style="margin-bottom:10px;">
+          <label class="field-label">Pattern notes</label>
+          <input type="text" placeholder="e.g. Pre-aggregate to monthly grain before applying rolling window. Use ROWS BETWEEN not RANGE BETWEEN."
+                 value="${esc(k.pattern_notes||"")}"
+                 oninput="state.kpis[${i}].pattern_notes = this.value"
+                 style="font-size:13px;">
+          <div class="field-hint">Optional. What Claude should know before writing SQL for this KPI — approach, ordering constraints, pre-steps.</div>
+        </div>
+
+        <!-- SQL logic section — collapsible -->
+        <div style="border-top:1px solid var(--gray-100);margin-top:4px;padding-top:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;"
+               onclick="toggleSqlSection(${i})">
+            <span style="font-size:12px;font-weight:500;color:var(--blue);">＋ Add SQL logic</span>
+            <span id="sql-chevron-${i}" style="font-size:11px;color:var(--gray-400);">${mode ? "▲" : "▼"}</span>
+          </div>
+
+          <div id="sql-section-${i}" style="${mode ? '' : 'display:none;'}margin-top:10px;">
+
+            <div class="field-group" style="margin-bottom:10px;">
+              <label class="field-label">SQL logic source</label>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+                ${["playbook","paste","describe"].map(m => `
+                  <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+                    <input type="radio" name="sql-mode-${i}" value="${m}"
+                           ${mode===m?"checked":""}
+                           onchange="handleSqlMode(${i}, '${m}')">
+                    ${ m==="playbook" ? "Use from playbook" : m==="paste" ? "Paste existing SQL" : "Describe rules" }
+                  </label>`).join("")}
+              </div>
+            </div>
+
+            <!-- Playbook mode -->
+            <div id="sql-playbook-${i}" style="${mode==='playbook'?'':'display:none;'}">
+              <div class="field-group" style="margin-bottom:0;">
+                <label class="field-label">Select playbook entry</label>
+                <select id="sql-pb-select-${i}" oninput="state.kpis[${i}].sql_playbook_entry = this.value">
+                  ${buildPlaybookOptions(k.name, k.sql_playbook_entry||"")}
+                </select>
+                <div class="field-hint">All 19 examples from EXAMPLES.md — pick the closest pattern.</div>
+              </div>
+            </div>
+
+            <!-- Paste mode -->
+            <div id="sql-paste-${i}" style="${mode==='paste'?'':'display:none;'}">
+              <div class="field-group" style="margin-bottom:0;">
+                <label class="field-label">Paste SQL</label>
+                <textarea rows="5" placeholder="Paste your existing SQL here — it will be wrapped as a stub in EXAMPLES.md"
+                          style="font-family:var(--mono);font-size:12px;"
+                          oninput="state.kpis[${i}].sql_pasted = this.value">${esc(k.sql_pasted||"")}</textarea>
+              </div>
+            </div>
+
+            <!-- Describe mode -->
+            <div id="sql-describe-${i}" style="${mode==='describe'?'':'display:none;'}">
+              <div class="field-group" style="margin-bottom:8px;">
+                <label class="field-label">Columns used</label>
+                <input type="text" placeholder="e.g. rendering_provider_id, service_date, new_to_brand_flag"
+                       value="${esc((rules.columns)||"")}"
+                       oninput="state.kpis[${i}].sql_rules.columns = this.value">
+                <div class="field-hint">Exact column names from validated tables — avoids Claude inventing them.</div>
+              </div>
+              <div class="field-group" style="margin-bottom:8px;">
+                <label class="field-label">Business rules</label>
+                <textarea rows="2" placeholder="e.g. Cumulative NBRx per HCP since launch. Trialist=1, User=2, Adopter≥3."
+                          oninput="state.kpis[${i}].sql_rules.business_rules = this.value"
+                          style="font-size:13px;">${esc((rules.business_rules)||"")}</textarea>
+                <div class="field-hint">Thresholds, filters, waterfall order — the core logic.</div>
+              </div>
+              <div class="field-group" style="margin-bottom:8px;">
+                <label class="field-label">Exclusions</label>
+                <input type="text" placeholder="e.g. Exclude patient_birth_year IS NULL. Exclude specialty pharmacy channel."
+                       value="${esc((rules.exclusions)||"")}"
+                       oninput="state.kpis[${i}].sql_rules.exclusions = this.value">
+                <div class="field-hint">Who or what is explicitly excluded — kept separate from rules to force explicit callout.</div>
+              </div>
+              <div class="field-group" style="margin-bottom:0;">
+                <label class="field-label">Known edge cases</label>
+                <input type="text" placeholder="e.g. Month gaps — HCPs with no NBRx in a month have no row. Sentinel birth year = 0."
+                       value="${esc((rules.edge_cases)||"")}"
+                       oninput="state.kpis[${i}].sql_rules.edge_cases = this.value">
+                <div class="field-hint">Sentinel values, gap months, multi-bucket patients, alias reference issues.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+function updateKpiHeader(i, name) {
+  const el = $(`kpi-header-name-${i}`);
+  if (el) el.textContent = name.trim() || `KPI ${i+1}`;
+}
+
+function toggleKpiCollapse(i) {
+  const body = $(`kpi-body-${i}`);
+  const chevron = $(`kpi-chevron-${i}`);
+  if (!body) return;
+  const isOpen = body.style.display !== "none";
+  body.style.display = isOpen ? "none" : "block";
+  state.kpis[i]._open = !isOpen;
+  if (chevron) chevron.textContent = isOpen ? "▼" : "▲";
+}
+
+function toggleSqlSection(i) {
+  const section = $(`sql-section-${i}`);
+  const chevron = $(`sql-chevron-${i}`);
+  if (!section) return;
+  const isOpen = section.style.display !== "none";
+  section.style.display = isOpen ? "none" : "block";
+  if (chevron) chevron.textContent = isOpen ? "▼" : "▲";
+}
+
+function handleSqlMode(i, mode) {
+  state.kpis[i].sql_source_mode = mode;
+  // Show the right sub-panel, hide others
+  ["playbook","paste","describe"].forEach(m => {
+    const el = $(`sql-${m}-${i}`);
+    if (el) el.style.display = m === mode ? "block" : "none";
+  });
+  // Refresh playbook dropdown to match current KPI name
+  if (mode === "playbook") {
+    const sel = $(`sql-pb-select-${i}`);
+    if (sel) {
+      sel.innerHTML = buildPlaybookOptions(state.kpis[i].name, state.kpis[i].sql_playbook_entry || "");
+    }
+  }
+}
+
+function removeKPI(i) {
+  state.kpis.splice(i, 1);
+  renderStep();
+}
+
+function addKPI() {
+  state.kpis.push({
+    name:"", definition:"", grain:"", grain_custom:"",
+    time_window:"", time_window_custom:"", caveats:"",
+    sql_source_mode:"", sql_playbook_entry:"", sql_pasted:"",
+    sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},
+    pattern_notes:"",
+    _open: false,
+  });
+  const container = $("kpi-fields");
+  const i = state.kpis.length - 1;
+  const div = document.createElement("div");
+  div.innerHTML = kpiBlock(state.kpis[i], i);
+  container.appendChild(div.firstElementChild);
+}
+
+function handleGrainSelect(i, value) {
+  state.kpis[i].grain = value;
+  const customInput = $("grain-custom-" + i);
+  if (customInput) {
+    customInput.style.display = value === "Custom" ? "block" : "none";
+    if (value !== "Custom") state.kpis[i].grain_custom = "";
+  }
+}
+
+function handleTwSelect(i, value) {
+  state.kpis[i].time_window = value;
+  const customInput = $(`tw-custom-${i}`);
+  if (customInput) {
+    customInput.style.display = value === "Custom date range" ? "block" : "none";
+    if (value !== "Custom date range") state.kpis[i].time_window_custom = "";
+  }
+}
+
+// ── Step 5: Completeness check ────────────────────────────────────────────────
+function renderValidation(el) {
+  const checks = runChecks();
+  const passed = checks.filter(c => c.pass).length;
+  const total = checks.length;
+  const pct = Math.round((passed / total) * 100);
+  const ringCls = pct >= 80 ? "great" : pct >= 55 ? "ok" : "low";
+  const summary = pct >= 80 ? "Ready to generate — good coverage"
+                : pct >= 55 ? "Usable with gaps — warnings non-blocking"
+                : "Thin scaffold — consider filling more fields";
+
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Completeness check</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">Rule-based validation across 7 dimensions. Warnings are non-blocking — you can generate and fill gaps later.</div>
+        <button class="info-btn" id="btn-info-validate" onclick="toggleInfo('info-validate')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-validate">
+        <strong>What gets checked</strong>
+        <ul>
+          <li><strong>Project name and description</strong> — blank names produce unnamed scaffolds that are hard to distinguish in a folder of projects.</li>
+          <li><strong>Domain context</strong> — at minimum a TA and brand should be set. Without these, <code>CLAUDE.md</code> has no domain frame and Claude will ask clarifying questions at every session start.</li>
+          <li><strong>Table validation</strong> — at least one table should have validated successfully. Without this, <code>EXAMPLES.md</code> uses placeholder column names and <code>schema_reference.md</code> is empty.</li>
+          <li><strong>KPI definitions</strong> — at least one KPI with a name and definition. Without KPIs, <code>EXAMPLES.md</code> and <code>kpi_definitions.md</code> are stub-only.</li>
+          <li><strong>SQL logic</strong> — checks whether any KPI has a SQL source set (playbook / paste / describe). KPIs without SQL logic get generic stubs in <code>EXAMPLES.md</code> that Claude has less to work from.</li>
+          <li><strong>None of these are blocking</strong> — the green download button is always active. Fix gaps after download by editing the files directly, or re-run File Primer with the same session.</li>
+        </ul>
+      </div>
+
+      <div class="score-panel">
+        <div class="score-header">
+          <div class="score-ring ${ringCls}">${pct}%</div>
+          <div>
+            <div class="score-label">${summary}</div>
+            <div class="score-sub">${passed} of ${total} checks passed</div>
+          </div>
+        </div>
+        <div class="check-list" id="check-list-items">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="back()">← Back</button>
+        <button class="btn btn-primary" onclick="generatePreview()">
+          <span id="gen-spinner" class="spinner" style="border-top-color:#fff;border-color:rgba(255,255,255,0.4)"></span>
+          Generate scaffold →
+        </button>
+        <button class="btn btn-ghost" onclick="reset()">Start over</button>
+      </div>
+    </div>`;
+
+  // Populate check items after innerHTML is set — avoids nested template literal syntax errors
+  renderCheckItems(checks);
+}
+
+function renderCheckItems(checks) {
+  var container = document.getElementById("check-list-items");
+  if (!container) return;
+  container.innerHTML = "";
+  for (var i = 0; i < checks.length; i++) {
+    try {
+      var c = checks[i];
+      var item = document.createElement("div");
+      item.className = "check-item";
+
+      var icon = document.createElement("div");
+      icon.className = "check-icon";
+      icon.textContent = c.pass ? "✅" : "⚠️";
+
+      var text = document.createElement("div");
+      text.className = "check-text" + (c.pass ? "" : " check-gap");
+
+      var strong = document.createElement("strong");
+      strong.textContent = c.label;
+      text.appendChild(strong);
+      text.appendChild(document.createTextNode(" \u2014 " + c.msg));
+
+      item.appendChild(icon);
+      item.appendChild(text);
+      container.appendChild(item);
+    } catch(e) {
+      // skip broken item, keep rendering the rest
+    }
+  }
+}
+
+function runChecks() {
+  const s = state;
+
+  // Safe accessors — guard against undefined state during transitions
+  const projectName    = (s.project_name || "").trim();
+  const description    = (s.description  || "").trim();
+  const owner          = (s.owner        || "").trim();
+  const audience       = s.audience      || [];
+  const tablesRaw      = (s.tables_raw   || "").trim();
+  const tableList      = tablesRaw.split(/[\n,]+/).map(t=>t.trim()).filter(t=>t && t.includes("."));
+  const validatedCount = Object.values(s.validated_tables || {}).filter(r=>r.ok).length;
+  const kpis           = s.kpis || [];
+
+  // KPI check — fully guarded
+  let kpiPass = false;
+  let kpiMsg  = "No KPIs — kpi_definitions.md will be blank template";
+  try {
+    const named   = kpis.filter(k => ((k && k.name) || k || "").toString().trim());
+    const withDef = named.filter(k => ((k && k.definition) || "").toString().trim());
+    kpiPass = named.length > 0;
+    if (named.length === 0) {
+      kpiMsg = "No KPIs — kpi_definitions.md will be blank template";
+    } else if (withDef.length === named.length) {
+      kpiMsg = named.length + " KPI(s) with definitions \u2713";
+    } else {
+      kpiMsg = named.length + " KPI(s) named, " + (named.length - withDef.length) + " missing definition";
+    }
+  } catch(e) {
+    kpiMsg = "KPI check error — continue anyway";
+  }
+
+  return [
+    {
+      label: "Project name",
+      pass: projectName.length > 0,
+      msg:  projectName ? '"' + projectName + '"' : "Missing — CLAUDE.md header will be unnamed",
+    },
+    {
+      label: "Description",
+      pass: description.length > 20,
+      msg:  description.length > 20 ? "Provided \u2713" : "Too brief or missing — CLAUDE.md context will be thin",
+    },
+    {
+      label: "Owner / DRI",
+      pass: owner.length > 0,
+      msg:  owner || "Not set — README ownership section will be blank",
+    },
+    {
+      label: "Audience",
+      pass: audience.length > 0,
+      msg:  audience.length ? audience.join(", ") : "Not selected — stakeholder context missing",
+    },
+    {
+      label: "Tables in scope",
+      pass: tablesRaw.length > 0,
+      msg:  tablesRaw.length ? tableList.length + " table(s) listed" : "No tables entered — schema_reference.md will be empty",
+    },
+    {
+      label: "Table validation",
+      pass: validatedCount > 0,
+      msg:  validatedCount > 0
+        ? validatedCount + "/" + tableList.length + " validated — real column data \u2713"
+        : "Not run — schema_reference.md will use placeholders",
+    },
+    {
+      label: "KPIs defined",
+      pass: kpiPass,
+      msg:  kpiMsg,
+    },
+  ];
+}
+
+// ── Step 6: Preview & download ────────────────────────────────────────────────
+async function generatePreview() {
+  const spinner = $("gen-spinner");
+  if (spinner) spinner.style.display = "block";
+
+  try {
+    state.previewFiles = buildPreviewFiles();
+    next();
+  } catch(err) {
+    toast("Preview error: " + err.message, true);
+    console.error("generatePreview error:", err);
+  } finally {
+    if (spinner) spinner.style.display = "none";
+  }
+}
+
+function buildPreviewFiles() {
+  const s = state;
+  const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  const audienceStr = (s.audience||[]).length ? s.audience.join(", ") : "not specified";
+  const tableList = Object.keys(s.validated_tables||{}).length
+    ? Object.keys(s.validated_tables).map(t => `- \`${t}\``).join("\n")
+    : (s.tables_raw||"").split(/[\n,]+/).map(t => `- \`${t.trim()}\``).filter(Boolean).join("\n") || "- *(none listed)*";
+  const kpiList = (s.kpis||[]).filter(k=>String(k&&k.name||"").trim()).map(k=>`- ${k&&k.name||k}`).join("\n") || "- *(none defined)*";
+
+  const files = {};
+
+  // CLAUDE.md
+  const domainSections = (s.domains||[]).filter(d => d.therapeutic_area || d.brand || d.market_context).map((d, i) => {
+    const label = [d.therapeutic_area, d.brand].filter(Boolean).join(" / ") || `Domain ${i+1}`;
+    const lines = [];
+    if (d.therapeutic_area)   lines.push(`**Therapeutic area**: ${d.therapeutic_area}`);
+    if (d.brand)              lines.push(`**Brand / drug**: ${d.brand}`);
+    if ((d.indication||[]).length) {
+      const indStr = d.indication.map(x => x === "Other" && d.indication_other ? `Other (${d.indication_other})` : x).join(", ");
+      lines.push(`**Indication(s)**: ${indStr}`);
+    }
+    if (d.key_population)     lines.push(`**Key population**: ${d.key_population}`);
+    if (d.known_exclusions)   lines.push(`**Known exclusions**: ${d.known_exclusions}`);
+    if ((d.data_sources||[]).length) {
+      const dsStr = d.data_sources.map(x => x === "Other" && d.data_sources_other ? `Other (${d.data_sources_other})` : x).join(", ");
+      lines.push(`**Data sources**: ${dsStr}`);
+    }
+    if (d.market_context)     lines.push(`\n**Market context:**\n${d.market_context}`);
+    return `### Domain ${i+1} — ${label}\n\n${lines.join("\n")}`;
+  }).join("\n\n");
+
+  const activeVocab = (s.vocab||[]).filter(v => v.term && v.term.trim());
+  const vocabSection = activeVocab.length
+    ? `\n## Business vocabulary\n\n| Term | Definition |\n|------|------------|\n` +
+      activeVocab.map(v => `| **${v.term}** | ${v.definition} |`).join("\n")
+    : "";
+
+  files["CLAUDE.md"] = `# CLAUDE.md — ${s.project_name || "Unnamed Project"}
+*Generated by File Primer on ${today}*
+
+## Project overview
+${s.description || "*(description not provided)*"}
+
+**Produces visual deliverable**: ${s.visual_output ? "Yes — styling_guide.md included" : "No"}
+**Owner**: ${s.owner || "—"}
+**Audience**: ${audienceStr}
+
+## Tables in scope
+${tableList}
+
+## KPIs in scope
+${kpiList}
+${domainSections ? `\n## Domain context\n\n${domainSections}\n` : ""}${vocabSection}
+
+## SQL conventions
+- Use persistent temp tables — avoid CTEs for multi-step logic
+- Naming: temp_[project]_[step]
+- Drop-if-exists before creating
+- Redshift: avoid frame clauses beyond ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+`;
+
+  // schema_reference.md — real column data if validated
+  const validated = s.validated_tables;
+  if (Object.keys(validated).length > 0) {
+    let schemaContent = `# Schema reference\n*Generated ${today} — live Redshift metadata*\n\n`;
+    for (const [tbl, meta] of Object.entries(validated)) {
+      if (!meta.ok) {
+        schemaContent += `## \`${tbl}\`\n> ❌ ${meta.error}\n\n`;
+        continue;
+      }
+      const dist = meta.columns.find(c=>c.distkey)?.name || "none";
+      const sorts = meta.columns.filter(c=>c.sortkey>0).sort((a,b)=>a.sortkey-b.sortkey).map(c=>c.name).join(", ") || "none";
+      const rowStr = meta.row_count >= 0 ? meta.row_count.toLocaleString() : "unknown";
+      schemaContent += `## \`${tbl}\`
+**Approx rows**: ${rowStr} | **DISTKEY**: \`${dist}\` | **SORTKEYS**: \`${sorts}\`
+
+| Column | Type | Nullable | Keys |
+|--------|------|----------|------|
+${meta.columns.map(c=>{
+  const keys=[];
+  if(c.distkey) keys.push("DIST");
+  if(c.sortkey>0) keys.push(`SORT${c.sortkey}`);
+  if(!c.nullable) keys.push("NOT NULL");
+  return `| \`${c.name}\` | \`${c.type}\` | ${c.nullable?"Yes":"No"} | ${keys.join(" ")||""} |`;
+}).join("\n")}
+
+`;
+    }
+    files["schema_reference.md"] = schemaContent;
+  } else {
+    files["schema_reference.md"] = `# Schema reference\n*Generated ${today}*\n\n> ⚠️ Tables not yet validated against Redshift. Re-run File Primer with validation to populate real column metadata.\n\n## Tables referenced\n${tableList}\n`;
+  }
+
+  // kpi_definitions.md
+  const kpis = (s.kpis||[]).filter(k=>String(k&&k.name||"").trim());
+  const allTables = Object.keys(s.validated_tables).length
+    ? Object.keys(s.validated_tables).map(t=>`\`${t}\``).join(", ")
+    : s.tables_raw.split(/[\n,]+/).map(t=>t.trim()).filter(Boolean).map(t=>`\`${t}\``).join(", ") || "*(specify)*";
+  files["kpi_definitions.md"] = `# KPI definitions\n*Generated ${today}*\n\n${
+    kpis.length
+      ? kpis.map(k => {
+          const name    = k.name || k;
+          const def     = (k.definition||"").trim() || "*(fill in)*";
+          const grain   = (k.grain||"").trim()       || "*(fill in)*";
+          const twRaw   = (k.time_window||"").trim();
+          const tw      = twRaw === "Custom date range"
+                          ? ((k.time_window_custom||"").trim() || "Custom date range")
+                          : (twRaw || "*(fill in)*");
+          const caveats = (k.caveats||"").trim()     || "*(fill in)*";
+          return `### ${name}\n\n**Business definition**: ${def}\n**Data source**: ${allTables}\n**Grain**: ${grain}\n**Time window**: ${tw}\n\`\`\`sql\n-- TODO: canonical SQL\n\`\`\`\n**Known caveats**: ${caveats}\n`;
+        }).join("\n")
+      : "*No KPIs specified.*\n"
+  }`;
+
+  // README.md
+  files["README.md"] = `# ${s.project_name || "Project"}
+*Generated ${today}*
+
+## What this is
+${s.description || "*(not provided)*"}
+
+**Owner**: ${s.owner || "—"} | **Audience**: ${audienceStr}
+
+## Data sources
+\`\`\`
+${s.tables_raw || "*(not specified)*"}
+\`\`\`
+
+## Revision history
+| Date | Author | Change |
+|------|--------|--------|
+| ${today} | ${s.owner || "—"} | Initial scaffold |
+`;
+
+  if (s.visual_output) {
+    files["styling_guide.md"] = `# Styling guide\n*Generated ${today}*\n\n## Lilly brand\n- Primary: \`#D52B1E\`\n- Text: \`#1A1A1A\`\n- Background: \`#F5F5F5\`\n\n## Chart conventions\n- Horizontal bars for HCP/patient lists\n- Line charts for time series\n- Minimum font: 11px in charts\n`;
+  }
+
+  if ((s.stakeholder_notes||"").trim()) {
+    files["stakeholder_notes.md"] = `# Stakeholder notes\n*Generated ${today}*\n\n## Audience\n${audienceStr}\n\n## Notes\n${s.stakeholder_notes}\n`;
+  }
+
+  const validatedNames = Object.keys(s.validated_tables).filter(k => s.validated_tables[k].ok);
+  const kpiNames = kpis.map(k => k.name || k).filter(Boolean);
+
+  // EXAMPLES.md — client-side preview
+  files["EXAMPLES.md"] = `# EXAMPLES.md — ${s.project_name || "Project"}
+*Generated ${today}*
+
+> One query stub per KPI, with your actual table and column names pre-filled.
+> Download to see the full file.
+
+${kpiNames.length ? kpiNames.map((k, i) => `## Example ${i+1} — ${k}
+
+**Business question**: How do we measure **${k}** for this project?
+**Tables**: ${validatedNames.length ? validatedNames.slice(0,2).join(", ") : "*(validate tables to pre-fill)*"}
+
+\`\`\`sql
+-- ${k}
+-- TODO: add metric-specific logic
+-- Reference kpi_definitions.md for pattern notes and pre-flight guidance
+\`\`\`
+`).join("\n") : "*No KPIs specified — add KPIs in step 4 to generate examples.*\n"}
+`;
+
+  return files;
+}
+
+let activePreviewTab = null;
+
+function renderPreview(el) {
+  const files = state.previewFiles;
+  const names = Object.keys(files);
+  if (!activePreviewTab || !names.includes(activePreviewTab)) {
+    activePreviewTab = names[0];
+  }
+
+  el.innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Scaffold preview</div>
+      <div class="step-info-row">
+        <div class="panel-subtitle">
+          Review the generated files before downloading. Click any tab to read the content.
+          ${Object.values(state.validated_tables).some(r=>r.ok)
+            ? '<span class="tag tag-green">schema_reference.md has real column data ✓</span>'
+            : '<span class="tag tag-blue">Validate tables to enrich schema_reference.md</span>'}
+        </div>
+        <button class="info-btn" id="btn-info-preview" onclick="toggleInfo('info-preview')" title="What to know">?</button>
+      </div>
+      <div class="info-drawer" id="info-preview">
+        <strong>How to use the scaffold in Claude Code</strong>
+        <ul>
+          <li><strong>Unzip into your project folder</strong> — the folder Claude Code will open. <code>CLAUDE.md</code> loads automatically at every session start.</li>
+          <li><strong>Start sessions with intent</strong> — "Read <code>EXAMPLES.md</code> and <code>kpi_definitions.md</code>, then help me build the NBRx rolling window using <code>apld_ex.elaad_oncology_masterdata</code>." The more specific the file reference, the tighter Claude's first response.</li>
+          <li><strong>session.json is included</strong> — this snapshot of your inputs lets you re-run File Primer later to refresh the scaffold (e.g. after a new data period, a new KPI, or a brand addition) without re-entering everything from scratch.</li>
+          <li><strong>Editing after download</strong> — the files are plain Markdown. Add completed SQL to <code>EXAMPLES.md</code> as the project matures. The more real examples in that file, the better Claude understands your expected query style.</li>
+        </ul>
+      </div>
+
+      <div class="preview-tabs" id="preview-tabs">
+        ${names.map(n => `
+          <div class="preview-tab ${n === activePreviewTab ? "active" : ""}"
+               onclick="switchTab('${n}')">${n}</div>
+        `).join("")}
+      </div>
+      <div class="preview-content" id="preview-body">${esc(files[activePreviewTab] || "")}</div>
+
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="back()">← Back</button>
+        <button class="btn btn-success" id="btn-download" onclick="downloadAll()">
+          <span id="dl-spinner" class="spinner"></span>
+          ⬇ Download all files (.zip)
+        </button>
+        <button class="btn btn-ghost" onclick="reset()">Start over</button>
+      </div>
+    </div>`;
+}
+
+function switchTab(name) {
+  activePreviewTab = name;
+  document.querySelectorAll(".preview-tab").forEach(t => {
+    t.classList.toggle("active", t.textContent === name);
+  });
+  const body = $("preview-body");
+  if (body) body.textContent = state.previewFiles[name] || "";
+}
+
+async function downloadAll() {
+  const btn = $("btn-download");
+  const spinner = $("dl-spinner");
+  btn.disabled = true;
+  spinner.style.display = "block";
+
+  try {
+    const resp = await fetch("/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      toast("Generation error: " + (e.error || resp.statusText), true);
+      return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const cd = resp.headers.get("Content-Disposition") || "";
+    const match = cd.match(/filename="?([^"]+)"?/);
+    a.download = match ? match[1] : "file_primer_scaffold.zip";
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast("Scaffold downloaded — session.json included for refresh path ✓");
+  } catch (err) {
+    toast("Download error: " + err.message, true);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = "none";
+  }
+}
+
+// ── Misc ─────────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function reset() {
+  if (!confirm("Reset all inputs and start over?")) return;
+  state = {
+    currentStep: 0,
+    visual_output: false, project_name: "", description: "",
+    owner: "", audience: [],
+    domains: [
+      {therapeutic_area:"", brand:"", indication:[], indication_other:"", data_sources:[], data_sources_other:"", key_population:{}, known_exclusions:"", market_context:{}, disease_state:{}, drug_performance:{}, additional_context:""},
+    ],
+    vocab: [{term:"",definition:""},{term:"",definition:""}],
+    tables_raw: "",
+    validated_tables: {}, kpis: [
+      {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
+      {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
+      {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
+    ],
+    stakeholder_notes: "", previewFiles: {},
+  };
+  activePreviewTab = null;
+  goTo(0);
+}
+
+// ── Connection screen logic ───────────────────────────────────────────────────
+
+async function checkConnection() {
+  try {
+    const res = await fetch("/status");
+    const data = await res.json();
+    if (data.connected) {
+      showMainApp();
+    } else {
+      showConnectScreen();
+    }
+  } catch (e) {
+    // If /status itself fails (e.g. app starting up), show connect screen
+    showConnectScreen();
+  }
+}
+
+function showConnectScreen() {
+  const cs = document.getElementById("connect-screen");
+  const ma = document.getElementById("main-app");
+  cs.style.display = "flex";
+  ma.style.display = "none";
+}
+
+function showMainApp() {
+  const cs = document.getElementById("connect-screen");
+  const ma = document.getElementById("main-app");
+  cs.style.display = "none";
+  ma.style.display = "flex";
+  renderHome();
+}
+
+async function submitConnect() {
+  const btn = document.getElementById("connect-btn");
+  const err = document.getElementById("connect-error");
+  btn.disabled = true;
+  btn.style.opacity = "0.6";
+  btn.textContent = "Connecting…";
+  err.style.display = "none";
+
+  const payload = {
+    user:     document.getElementById("db_user").value.trim(),
+    password: document.getElementById("db_password").value,
+  };
+
+  try {
+    const res = await fetch("/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.status === "ok") {
+      showMainApp();
+    } else {
+      err.textContent = data.message || "Connection failed. Check your credentials and try again.";
+      err.style.display = "block";
+      btn.disabled = false;
+      btn.style.opacity = "1";
+      btn.textContent = "Connect";
+    }
+  } catch (e) {
+    err.textContent = "Network error — could not reach the server.";
+    err.style.display = "block";
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.textContent = "Connect";
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+checkConnection();
+</script>
+</div><!-- end #main-app -->
+</body>
+</html>
