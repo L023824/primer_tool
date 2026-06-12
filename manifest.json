@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "locale": "en_US",
+  "platform": "3.12",
+  "metadata": {
+    "appmode": "python-api",
+    "entrypoint": "app:app"
+  },
+  "python": {
+    "version": "3.12.4",
+    "package_manager": {
+      "name": "pip",
+      "version": "23.0",
+      "package_file": "requirements.txt"
+    }
+  },
+  "files": {
+    "app.py": {
+      "checksum": ""
+    },
+    "fp_ui.html": {
+      "checksum": ""
+    },
+    "requirements.txt": {
+      "checksum": ""
+    }
+  }
+}
