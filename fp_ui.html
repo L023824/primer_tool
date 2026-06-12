@@ -1147,13 +1147,19 @@
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
 // ── Base URL helper — works behind Posit Connect reverse proxy ────────────────
+// Posit Connect serves this app at /content/{guid}/
+// We detect whether we're on Posit or JupyterHub and route accordingly.
 const BASE_URL = (() => {
-  const p = window.location.pathname;
-  // Strip trailing slash and last path segment to get the app root
-  // e.g. /content/abc123/ → /content/abc123
-  return window.location.origin + p.replace(/\/+$/, "").replace(/\/[^/]*$/, "");
+  const href = window.location.href;
+  // If running on Posit Connect — URL contains /content/{guid}/
+  const positMatch = href.match(/(https?:\/\/[^/]+\/content\/[^/]+)\/?/);
+  if (positMatch) return positMatch[1] + "/";
+  // Otherwise running locally on JupyterHub — use relative root
+  return window.location.origin + "/";
 })();
-function apiUrl(path) { return BASE_URL + path; }
+function apiUrl(path) {
+  return BASE_URL + path.replace(/^\//, "");
+}
 
 const STEPS = [
   { id: "mode",       label: "Output type" },
