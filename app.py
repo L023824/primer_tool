@@ -28,9 +28,9 @@ def get_conn():
         creds = flask_session["db"]
     else:
         creds = {
-            "host":     os.getenv("REDSHIFT_HOST"),
+            "host":     os.getenv("REDSHIFT_HOST",   "cwb-rs-cluster-prod.czywitd0zinp.us-east-2.redshift.amazonaws.com"),
             "port":     int(os.getenv("REDSHIFT_PORT", 5439)),
-            "dbname":   os.getenv("REDSHIFT_DBNAME"),
+            "dbname":   os.getenv("REDSHIFT_DBNAME", "bia_db"),
             "user":     os.getenv("REDSHIFT_USER"),
             "password": os.getenv("REDSHIFT_PASSWORD"),
         }
@@ -1161,16 +1161,14 @@ def connect():
     import psycopg2
     data = request.get_json(force=True)
 
-    # Host, port, dbname are shared config — read from env vars
+    # Host, port, dbname are shared config — hardcoded defaults with env var override
     # Only username and password are user-specific
-    host   = os.getenv("REDSHIFT_HOST")
+    host   = os.getenv("REDSHIFT_HOST",   "cwb-rs-cluster-prod.czywitd0zinp.us-east-2.redshift.amazonaws.com")
     port   = int(os.getenv("REDSHIFT_PORT", 5439))
-    dbname = os.getenv("REDSHIFT_DBNAME")
+    dbname = os.getenv("REDSHIFT_DBNAME", "bia_db")
     user   = data.get("user", "").strip()
     password = data.get("password", "")
 
-    if not host or not dbname:
-        return jsonify({"status": "error", "message": "Server configuration incomplete — contact the app administrator."}), 500
     if not user or not password:
         return jsonify({"status": "error", "message": "Username and password are required."}), 400
 
