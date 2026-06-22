@@ -1190,6 +1190,7 @@ let state = {
   table_vocab: [{term:"",alias:"",definition:""},{term:"",alias:"",definition:""}],
   stakeholder_images: [],
   tables_raw: "",
+  views_raw: "",
   validated_tables: {},
   kpis: [
     {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
@@ -1285,6 +1286,7 @@ function hydrateState(session) {
     ? session.vocab
     : [{term:"",definition:""},{term:"",definition:""}];
   state.tables_raw        = session.tables_raw        || "";
+  state.views_raw         = session.views_raw         || "";
   state.validated_tables  = session.validated_tables  || {};
   state.kpis              = (session.kpis && session.kpis.length)
     ? session.kpis.map(k => Object.assign({}, kpiDefaults, k))
@@ -1996,15 +1998,31 @@ function renderTables(el) {
           <textarea id="f-tables" rows="4" placeholder="imm.ebglyss_patients&#10;obu.jaypirca_hcp_base&#10;obu.laad_prescriptions"
                     style="font-family: var(--mono); font-size:13px;"
                     oninput="state.tables_raw = this.value">${esc(state.tables_raw)}</textarea>
-          <button class="validate-btn" id="btn-validate" onclick="runValidation()">
-            <span id="val-spinner" class="spinner"></span>
-            <span id="val-btn-label">Validate tables</span>
+          <button class="validate-btn" id="btn-validate-tables" onclick="runValidation('tables')">
+            <span id="val-spinner-tables" class="spinner"></span>
+            <span id="val-btn-label-tables">Validate tables</span>
           </button>
         </div>
-        <div class="field-hint">Validation fetches real column metadata from Redshift using your credentials. Non-blocking — you can proceed without it.</div>
+        <div class="field-hint">Physical tables only (heap tables). Validation reads <code>pg_catalog.pg_attribute</code> — fast, metadata only, no data read.</div>
       </div>
 
-      <div id="val-results-area"></div>
+      <div id="val-results-area-tables"></div>
+
+      <div class="field-group" style="margin-top:16px;">
+        <label class="field-label">Views <span style="font-weight:400;color:var(--gray-500);font-size:11px;">(optional)</span></label>
+        <div class="table-input-row">
+          <textarea id="f-views" rows="3" placeholder="apld_ex.elaad_fct_rx&#10;apld_ex.elaad_fct_mx"
+                    style="font-family: var(--mono); font-size:13px;"
+                    oninput="state.views_raw = this.value">${esc(state.views_raw)}</textarea>
+          <button class="validate-btn" id="btn-validate-views" onclick="runValidation('views')">
+            <span id="val-spinner-views" class="spinner"></span>
+            <span id="val-btn-label-views">Validate views</span>
+          </button>
+        </div>
+        <div class="field-hint">Late-binding views (LBV, <code>WITH NO SCHEMA BINDING</code>) and regular views. Validated separately — LBV metadata resolution can be slower than tables.</div>
+      </div>
+
+      <div id="val-results-area-views"></div>
 
       <div id="table-vocab-section">
         <div class="divider"></div>
@@ -2038,46 +2056,61 @@ function renderTables(el) {
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="back()">← Back</button>
         <button class="btn btn-primary" id="btn-tables-next" onclick="tablesNext()"
-          ${!state.tables_raw.trim() ? "disabled" : ""}>Continue →</button>
+          ${(!state.tables_raw.trim() && !state.views_raw.trim()) ? "disabled" : ""}>Continue →</button>
         <button class="btn btn-ghost" onclick="reset()">Start over</button>
       </div>
     </div>`;
 
   $("f-tables").addEventListener("input", () => {
-    $("btn-tables-next").disabled = !state.tables_raw.trim();
+    $("btn-tables-next").disabled = !state.tables_raw.trim() && !state.views_raw.trim();
+  });
+  if ($("f-views")) $("f-views").addEventListener("input", () => {
+    $("btn-tables-next").disabled = !state.tables_raw.trim() && !state.views_raw.trim();
   });
 
   // Restore validation results if we navigated back
   if (Object.keys(state.validated_tables).length > 0) {
-    renderValResults(state.validated_tables);
+    const allResults = state.validated_tables;
+    const viewNames  = (state.views_raw || "").split(/[\n,]+/).map(t => t.trim()).filter(Boolean);
+    const tableRes   = {}, viewRes = {};
+    for (const [k, v] of Object.entries(allResults)) {
+      if (viewNames.includes(k)) viewRes[k] = v; else tableRes[k] = v;
+    }
+    if (Object.keys(tableRes).length) renderValResults(tableRes, "val-results-area-tables");
+    if (Object.keys(viewRes).length)  renderValResults(viewRes,  "val-results-area-views");
   }
 }
 
-async function runValidation() {
-  const raw = state.tables_raw.trim();
-  if (!raw) { toast("Enter at least one table first", true); return; }
+async function runValidation(mode) {
+  // mode: 'tables' or 'views'
+  const isViews = mode === "views";
+  const raw = (isViews ? state.views_raw : state.tables_raw).trim();
+  if (!raw) { toast(`Enter at least one ${isViews ? "view" : "table"} first`, true); return; }
 
-  const tables = raw.split(/[\n,]+/).map(t => t.trim()).filter(t => t && t.includes("."));
-  if (!tables.length) { toast("No valid schema.table entries found", true); return; }
+  const entries = raw.split(/[\n,]+/).map(t => t.trim()).filter(t => t && t.includes("."));
+  if (!entries.length) { toast(`No valid schema.name entries found`, true); return; }
 
-  const btn = $("btn-validate");
-  const spinner = $("val-spinner");
-  const label = $("val-btn-label");
+  const btnId     = isViews ? "btn-validate-views"    : "btn-validate-tables";
+  const spinnerId = isViews ? "val-spinner-views"      : "val-spinner-tables";
+  const labelId   = isViews ? "val-btn-label-views"    : "val-btn-label-tables";
+  const areaId    = isViews ? "val-results-area-views" : "val-results-area-tables";
+
+  const btn     = $(btnId);
+  const spinner = $(spinnerId);
+  const label   = $(labelId);
   btn.disabled = true;
   spinner.style.display = "block";
   label.textContent = "Validating…";
 
-  // Timeout: Posit Connect proxy drops idle connections around 60s.
-  // 45s gives enough time for slow metadata queries while failing fast enough
-  // to show an error rather than a silent hang.
+  const timeoutMs = isViews ? 60000 : 45000;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const resp = await fetch(apiUrl("/validate"), {
       method: "POST",
       headers: apiHeaders(),
-      body: JSON.stringify({ tables }),
+      body: JSON.stringify({ tables: entries }),
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
@@ -2087,26 +2120,31 @@ async function runValidation() {
       return;
     }
     const data = await resp.json();
-    state.validated_tables = data.results;
-    renderValResults(data.results);
+
+    // Merge into shared validated_tables — both sections feed the same dict
+    state.validated_tables = Object.assign({}, state.validated_tables, data.results);
+
+    // Render results into the section-specific area
+    renderValResults(data.results, areaId);
+
     const okCount = Object.values(data.results).filter(r => r.ok).length;
-    toast(`Validated ${okCount}/${tables.length} tables — schema_reference.md will include real column data ✓`);
+    toast(`Validated ${okCount}/${entries.length} ${isViews ? "view(s)" : "table(s)"} ✓`);
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      toast("Validation timed out (>45s) — Redshift may be slow or the connection was dropped. Try again or reduce the number of tables.", true);
+      toast(`Validation timed out (>${timeoutMs/1000}s) — ${isViews ? "LBV metadata can be slow; try fewer views at once" : "Redshift may be busy — try again"}`, true);
     } else {
       toast("Network error: " + err.message, true);
     }
   } finally {
     btn.disabled = false;
     spinner.style.display = "none";
-    label.textContent = "Re-validate";
+    label.textContent = isViews ? "Validate views" : "Validate tables";
   }
 }
 
-function renderValResults(results) {
-  const area = $("val-results-area");
+function renderValResults(results, areaId) {
+  const area = $(areaId || "val-results-area-tables");
   if (!area) return;
   const entries = Object.entries(results);
   if (!entries.length) { area.innerHTML = ""; return; }
@@ -2513,7 +2551,7 @@ function toggleColPanel(id) {
 }
 
 function tablesNext() {
-  if (!state.tables_raw.trim()) { toast("Enter at least one table", true); return; }
+  if (!state.tables_raw.trim() && !state.views_raw.trim()) { toast("Enter at least one table or view", true); return; }
   next();
 }
 
@@ -2987,7 +3025,9 @@ function runChecks() {
   const owner          = (s.owner        || "").trim();
   const audience       = s.audience      || [];
   const tablesRaw      = (s.tables_raw   || "").trim();
-  const tableList      = tablesRaw.split(/[\n,]+/).map(t=>t.trim()).filter(t=>t && t.includes("."));
+  const viewsRaw       = (s.views_raw    || "").trim();
+  const combinedRaw    = [tablesRaw, viewsRaw].filter(Boolean).join("\n");
+  const tableList      = combinedRaw.split(/[\n,]+/).map(t=>t.trim()).filter(t=>t && t.includes("."));
   const validatedCount = Object.values(s.validated_tables || {}).filter(r=>r.ok).length;
   const kpis           = s.kpis || [];
 
@@ -3021,12 +3061,12 @@ function runChecks() {
       msg:  description.length > 20 ? "Provided \u2713" : "Too brief or missing — CLAUDE.md context will be thin",
     },
     {
-      label: "Tables in scope",
-      pass: tablesRaw.length > 0,
-      msg:  tablesRaw.length ? tableList.length + " table(s) listed" : "No tables entered — schema_reference.md will be empty",
+      label: "Tables / views in scope",
+      pass: combinedRaw.length > 0,
+      msg:  combinedRaw.length ? tableList.length + " object(s) listed" : "No tables or views entered — schema_reference.md will be empty",
     },
     {
-      label: "Table validation",
+      label: "Validation",
       pass: validatedCount > 0,
       msg:  validatedCount > 0
         ? validatedCount + "/" + tableList.length + " validated — real column data \u2713"
@@ -3060,9 +3100,10 @@ function buildPreviewFiles() {
   const s = state;
   const today = new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const audienceStr = (s.audience||[]).length ? s.audience.join(", ") : "not specified";
+  const combinedRawPreview = [(s.tables_raw||"").trim(), (s.views_raw||"").trim()].filter(Boolean).join("\n");
   const tableList = Object.keys(s.validated_tables||{}).length
     ? Object.keys(s.validated_tables).map(t => `- \`${t}\``).join("\n")
-    : (s.tables_raw||"").split(/[\n,]+/).map(t => `- \`${t.trim()}\``).filter(Boolean).join("\n") || "- *(none listed)*";
+    : combinedRawPreview.split(/[\n,]+/).map(t => `- \`${t.trim()}\``).filter(Boolean).join("\n") || "- *(none listed)*";
   const kpiList = (s.kpis||[]).filter(k=>String(k&&k.name||"").trim()).map(k=>`- ${k&&k.name||k}`).join("\n") || "- *(none defined)*";
 
   const files = {};
@@ -3153,7 +3194,7 @@ ${meta.columns.map(c=>{
   const kpis = (s.kpis||[]).filter(k=>String(k&&k.name||"").trim());
   const allTables = Object.keys(s.validated_tables).length
     ? Object.keys(s.validated_tables).map(t=>`\`${t}\``).join(", ")
-    : s.tables_raw.split(/[\n,]+/).map(t=>t.trim()).filter(Boolean).map(t=>`\`${t}\``).join(", ") || "*(specify)*";
+    : combinedRawPreview.split(/[\n,]+/).map(t=>t.trim()).filter(Boolean).map(t=>`\`${t}\``).join(", ") || "*(specify)*";
   files["kpi_definitions.md"] = `# KPI definitions\n*Generated ${today}*\n\n${
     kpis.length
       ? kpis.map(k => {
@@ -3181,7 +3222,7 @@ ${s.description || "*(not provided)*"}
 
 ## Data sources
 \`\`\`
-${s.tables_raw || "*(not specified)*"}
+${combinedRawPreview || "*(not specified)*"}
 \`\`\`
 
 ## Revision history
@@ -3342,6 +3383,7 @@ function reset() {
     table_vocab: [{term:"",alias:"",definition:""},{term:"",alias:"",definition:""}],
     stakeholder_images: [],
     tables_raw: "",
+    views_raw: "",
     validated_tables: {}, kpis: [
       {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
       {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
