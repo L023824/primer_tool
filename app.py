@@ -1387,15 +1387,29 @@ def validate():
             schema, table = full_name.split(".", 1)
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    # relkind: 'r' = table, 'v' = view, 'm' = materialized view
+
+                    # ── Step 1: check pg_class to determine object type ───────
+                    # This works for tables, regular views, materialized views,
+                    # AND late-binding views (LBVs, created WITH NO SCHEMA BINDING).
+                    # LBVs have relkind='v' in pg_class but zero rows in pg_attribute.
+                    cur.execute("""
+                        SELECT c.relkind
+                        FROM pg_catalog.pg_class c
+                        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                        WHERE n.nspname = %s
+                          AND c.relname = %s
+                          AND c.relkind IN ('r', 'v', 'm')
+                    """, (schema, table))
+                    cls_row = cur.fetchone()
+
+                    # ── Step 2: try pg_attribute (tables + regular views) ─────
                     cur.execute("""
                         SELECT
                             a.attname                                        AS name,
                             pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
                             NOT a.attnotnull                                 AS nullable,
                             COALESCE(a.attisdistkey, false)                  AS distkey,
-                            COALESCE(a.attsortkeyord, 0)                     AS sortkey,
-                            c.relkind                                        AS relkind
+                            COALESCE(a.attsortkeyord, 0)                     AS sortkey
                         FROM pg_catalog.pg_attribute a
                         JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
                         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
@@ -1408,12 +1422,35 @@ def validate():
                     """, (schema, table))
                     cols = [dict(r) for r in cur.fetchall()]
 
+                    # ── Step 3: LBV fallback via information_schema ───────────
+                    # Late-binding views defer column resolution, so pg_attribute
+                    # returns 0 rows. information_schema.columns covers them.
+                    lbv_fallback = False
+                    if not cols and cls_row:
+                        cur.execute("""
+                            SELECT
+                                column_name                             AS name,
+                                data_type                               AS type,
+                                (is_nullable = 'YES')                   AS nullable,
+                                false                                   AS distkey,
+                                0                                       AS sortkey
+                            FROM information_schema.columns
+                            WHERE table_schema = %s
+                              AND table_name   = %s
+                            ORDER BY ordinal_position
+                        """, (schema, table))
+                        cols = [dict(r) for r in cur.fetchall()]
+                        if cols:
+                            lbv_fallback = True
+
                     if not cols:
                         results[full_name] = {"ok": False, "error": "Not found — check schema/name and access permissions"}
                         continue
 
-                    relkind = cols[0].get("relkind", "r") if cols else "r"
-                    is_view = relkind in ("v", "m")
+                    # relkind from pg_class check; fall back to 'r' if object
+                    # wasn't in pg_class but somehow columns exist (shouldn't happen)
+                    raw_relkind = cls_row["relkind"] if cls_row else "r"
+                    is_view = raw_relkind in ("v", "m") or lbv_fallback
 
                     if is_view:
                         approx = -1
