@@ -1387,71 +1387,67 @@ def validate():
             schema, table = full_name.split(".", 1)
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    # Single round-trip: pg_attribute covers tables + regular views.
-                    # information_schema.columns covers late-binding views (LBVs,
-                    # WITH NO SCHEMA BINDING) which have zero rows in pg_attribute.
-                    # The UNION ALL + NOT EXISTS ensures is_cols only surfaces when
-                    # pg_attribute returned nothing — so LBVs never conflict with tables.
-                    # reltuples for row count is inlined for tables only.
+                    # Query 1: pg_attribute — covers physical tables + regular (schema-binding) views.
+                    # Fast: indexed on oid, returns only columns for this specific object.
                     cur.execute("""
-                        WITH pg_cols AS (
-                            SELECT
-                                a.attname                                        AS name,
-                                pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
-                                (NOT a.attnotnull)::boolean                      AS nullable,
-                                COALESCE(a.attisdistkey, false)                  AS distkey,
-                                COALESCE(a.attsortkeyord, 0)::int                AS sortkey,
-                                c.relkind                                        AS relkind,
-                                'pg'                                             AS source,
-                                a.attnum                                         AS ord
-                            FROM pg_catalog.pg_attribute a
-                            JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
-                            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                            WHERE n.nspname = %s
-                              AND c.relname = %s
-                              AND c.relkind IN ('r', 'v', 'm')
-                              AND a.attnum > 0
-                              AND NOT a.attisdropped
-                        ),
-                        is_cols AS (
-                            SELECT
-                                ic.column_name                                   AS name,
-                                ic.data_type                                     AS type,
-                                (ic.is_nullable = 'YES')                         AS nullable,
-                                false                                            AS distkey,
-                                0                                                AS sortkey,
-                                COALESCE(pc.relkind, 'v')                        AS relkind,
-                                'is'                                             AS source,
-                                ic.ordinal_position                              AS ord
-                            FROM information_schema.columns ic
-                            LEFT JOIN (
-                                SELECT c.relkind
-                                FROM pg_catalog.pg_class c
-                                JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                                WHERE n.nspname = %s AND c.relname = %s
-                                  AND c.relkind IN ('r', 'v', 'm')
-                                LIMIT 1
-                            ) pc ON true
-                            WHERE ic.table_schema = %s
-                              AND ic.table_name   = %s
-                        )
-                        SELECT name, type, nullable, distkey, sortkey, relkind, source, ord
-                        FROM pg_cols
-                        UNION ALL
-                        SELECT name, type, nullable, distkey, sortkey, relkind, source, ord
-                        FROM is_cols
-                        WHERE NOT EXISTS (SELECT 1 FROM pg_cols)
-                        ORDER BY source, ord
-                    """, (schema, table, schema, table, schema, table))
+                        SELECT
+                            a.attname                                        AS name,
+                            pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
+                            (NOT a.attnotnull)::boolean                      AS nullable,
+                            COALESCE(a.attisdistkey, false)                  AS distkey,
+                            COALESCE(a.attsortkeyord, 0)::int                AS sortkey,
+                            c.relkind                                        AS relkind
+                        FROM pg_catalog.pg_attribute a
+                        JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
+                        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                        WHERE n.nspname = %s
+                          AND c.relname = %s
+                          AND c.relkind IN ('r', 'v', 'm')
+                          AND a.attnum > 0
+                          AND NOT a.attisdropped
+                        ORDER BY a.attnum
+                    """, (schema, table))
                     cols = [dict(r) for r in cur.fetchall()]
+
+                    lbv_fallback = False
+                    if cols:
+                        raw_relkind = cols[0].get("relkind", "r")
+                    else:
+                        # Query 2 (LBV fallback): pg_get_late_binding_view_cols() is a
+                        # Redshift-native SRF for WITH NO SCHEMA BINDING views — targeted,
+                        # sub-second. Only runs when pg_attribute returned nothing.
+                        # information_schema.columns is intentionally avoided: it does a
+                        # full catalog scan across all schemas and causes timeouts.
+                        try:
+                            cur.execute("""
+                                SELECT
+                                    col_name                             AS name,
+                                    col_type                             AS type,
+                                    true                                 AS nullable,
+                                    false                                AS distkey,
+                                    0                                    AS sortkey,
+                                    'v'                                  AS relkind
+                                FROM pg_get_late_binding_view_cols()
+                                     AS t(view_schema name, view_name name,
+                                          col_name name, col_type varchar, col_num int)
+                                WHERE view_schema = %s
+                                  AND view_name   = %s
+                                ORDER BY col_num
+                            """, (schema, table))
+                            cols = [dict(r) for r in cur.fetchall()]
+                            if cols:
+                                lbv_fallback = True
+                                raw_relkind = "v"
+                        except Exception:
+                            # pg_get_late_binding_view_cols not available on this cluster
+                            cols = []
+                            raw_relkind = "r"
 
                     if not cols:
                         results[full_name] = {"ok": False, "error": "Not found — check schema/name and access permissions"}
                         continue
 
-                    raw_relkind  = cols[0].get("relkind", "r")
-                    lbv_fallback = cols[0].get("source") == "is"
-                    is_view      = raw_relkind in ("v", "m") or lbv_fallback
+                    is_view = raw_relkind in ("v", "m") or lbv_fallback
 
                     if is_view:
                         approx = -1
