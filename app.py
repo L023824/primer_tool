@@ -27,9 +27,7 @@ app.config.update(
 )
 
 # ── Server-side credential store ─────────────────────────────────────────────
-# Belt-and-suspenders fallback for Posit Connect multi-worker environments
-# where session cookies may not survive between requests.
-# Keyed by a random token the browser sends in X-Session-Token header.
+# Bypasses Flask session cookie issues on Posit Connect multi-worker deployments.
 import threading, secrets as _secrets
 _cred_store = {}
 _cred_lock  = threading.Lock()
@@ -112,11 +110,18 @@ DOMAIN_CONTEXT = {
                 "Key diagnosis anchor: ICD-10 C91.1."
             ),
             "drug_performance": (
-                "Lilly: Jaypirca (pirtobrutinib) — non-covalent BTKi; indicated for adults with CLL/SLL "
-                "after ≥2 prior lines including a BTKi and BCL-2 inhibitor. "
-                "Differentiated by activity in the post-covalent BTKi setting. "
+                "Lilly: Jaypirca (pirtobrutinib) — non-covalent BTKi. "
+                "Current approved indication (Dec 2025 traditional approval, BRUIN CLL-321): "
+                "adults with relapsed or refractory CLL/SLL who have previously been treated with "
+                "a covalent BTK inhibitor. Removes the prior accelerated-approval requirement of "
+                "≥2 lines including both a BTKi and BCL-2 inhibitor — now accessible directly "
+                "after covalent BTKi failure. "
+                "Anticipatory 1L CLL approval in pipeline — analytics should be built to support "
+                "both post-covalent BTKi and 1L HCP opportunity identification. "
                 "Competitive context: covalent BTKi class (ibrutinib, acalabrutinib, zanubrutinib) "
-                "dominates 1L/earlier lines; venetoclax combinations active in BTKi-intolerant patients."
+                "dominates 1L; venetoclax combinations active in BTKi-intolerant patients; "
+                "post-BTKi segment is Jaypirca's current core but 1L launch will require "
+                "targeting a significantly broader HCP universe."
             ),
         },
         "MCL": {
@@ -149,10 +154,13 @@ DOMAIN_CONTEXT = {
                 "CDK4/6 inhibitors are now standard of care in the adjuvant setting for high-risk patients."
             ),
             "market_context": (
-                "CDK4/6 inhibitor adjuvant market — abemaciclib (Verzenio) and ribociclib (Kisqali) approved. "
+                "CDK4/6 inhibitor adjuvant market — abemaciclib (Verzenio) and ribociclib (Kisqali) both approved. "
                 "Palbociclib (Ibrance) does not have an adjuvant approval. "
                 "Adjuvant endocrine backbone is aromatase inhibitor or tamoxifen. "
-                "High-risk patient identification (nodal involvement, Ki-67) drives treatment eligibility."
+                "High-risk patient identification (nodal involvement, tumor size, grade) drives eligibility; "
+                "Ki-67 requirement removed from Verzenio label in 2023. "
+                "Kisqali adjuvant approval (Sep 2024, NATALEE) includes node-negative patients — "
+                "broader eligible population than Verzenio's node-positive focus."
             ),
             "key_population": (
                 "High-risk HR+/HER2- early breast cancer patients post-surgery. "
@@ -161,10 +169,13 @@ DOMAIN_CONTEXT = {
             ),
             "drug_performance": (
                 "Lilly: Verzenio (abemaciclib) — CDK4/6 inhibitor approved in adjuvant HR+/HER2- eBC "
-                "with high recurrence risk; monarchE trial supports 2-year treatment duration. "
-                "First CDK4/6i with adjuvant approval at launch. "
-                "Competitive context: Kisqali (ribociclib, Novartis) has since received adjuvant approval "
-                "and competes directly in this setting."
+                "with high recurrence risk (≥4 nodes, or 1-3 nodes + tumor ≥5cm or grade 3); "
+                "2-year treatment duration per monarchE. "
+                "monarchE 7-year OS analysis (Aug 2025) showed statistically significant overall survival "
+                "benefit — first CDK4/6i with OS data in the adjuvant setting. "
+                "Competitive context: Kisqali (ribociclib, Novartis) approved adjuvant Sep 2024 (NATALEE); "
+                "3-year treatment duration at 400mg; includes node-negative patients — "
+                "broader label but no OS data to date. Direct competition in the node-positive segment."
             ),
         },
         "mBC": {
@@ -208,10 +219,12 @@ DOMAIN_CONTEXT = {
             ),
             "market_context": (
                 "IL-4/IL-13 pathway dominates biologics. "
-                "Dupixent (dupilumab, Sanofi/Regeneron) is market leader with broad label. "
-                "Ebglyss (lebrikizumab) and Adbry (tralokinumab) compete in the anti-IL-13 space. "
+                "Dupixent (dupilumab, Sanofi/Regeneron) is market leader with broad label (ages 6 months+). "
+                "Ebglyss (lebrikizumab, Sep 2024 US approval) and Adbry (tralokinumab) compete in anti-IL-13 space. "
                 "JAK inhibitors (Rinvoq/upadacitinib, Cibinqo/abrocitinib) active in moderate-severe segment. "
-                "TCS/TCI use as background therapy is a key dependency metric for analytics."
+                "TCS/TCI use as background therapy is a key dependency metric for analytics. "
+                "Dosing convenience is a differentiator: Ebglyss Q8W maintenance (6 injections/year) "
+                "approved Jun 2026 — only biologic in class approved at this frequency without mandatory topicals."
             ),
             "key_population": (
                 "Moderate-to-severe AD adults inadequately controlled on topical therapy. "
@@ -219,11 +232,14 @@ DOMAIN_CONTEXT = {
                 "Key diagnosis anchor: ICD-10 L20.x."
             ),
             "drug_performance": (
-                "Lilly: Ebglyss (lebrikizumab) — high-affinity anti-IL-13 monoclonal antibody; "
-                "Q2W maintenance dosing after loading. "
+                "Lilly: Ebglyss (lebrikizumab) — high-affinity anti-IL-13 monoclonal antibody. "
+                "US FDA approved Sep 2024 for adults and adolescents ≥12 years weighing ≥40kg. "
+                "Dosing: 500mg loading (2×250mg at weeks 0 and 2), then 250mg Q2W until response, "
+                "then Q2W or Q8W (6 injections/year) maintenance — approved Q8W Jun 2026. "
+                "Only biologic in class with approved Q8W maintenance without mandatory topical co-therapy. "
+                "Pediatric expansion (ages 6mo–<12yr) in pipeline (ADorable-1 phase 3 positive topline). "
                 "Competitive context: Dupixent (dupilumab) targets IL-4Rα blocking both IL-4 and IL-13 — "
-                "broader mechanism and established market leader. "
-                "Adbry (tralokinumab) also anti-IL-13 but lower binding affinity differentiation. "
+                "broader mechanism, established leader; Adbry (tralokinumab) also anti-IL-13; "
                 "JAK inhibitors offer oral option but carry class-level safety labeling requirements."
             ),
         },
@@ -302,12 +318,16 @@ DOMAIN_CONTEXT = {
                 "Key diagnosis anchors: ICD-10 K50.x (Crohn's disease), K51.x (ulcerative colitis)."
             ),
             "drug_performance": (
-                "Lilly: Omvoh (mirikizumab) — anti-IL-23p19 monoclonal antibody; "
-                "approved for moderately to severely active ulcerative colitis. "
-                "Differentiated by selective IL-23 blockade with favorable safety and efficacy profile. "
-                "Competitive context: Skyrizi (risankizumab) IL-23 inhibitor approved in both UC and CD — "
-                "direct competitor; Entyvio (vedolizumab) gut-selective biologic with strong real-world safety data; "
-                "Rinvoq (upadacitinib) JAK inhibitor active across UC and CD."
+                "Lilly: Omvoh (mirikizumab) — anti-IL-23p19 monoclonal antibody. "
+                "Approved for moderately to severely active UC (Oct 2023) and Crohn's disease (Jan 2025, VIVID-1) — "
+                "now covers the full IBD spectrum. "
+                "First biologic in >15 years to disclose 2-year phase 3 efficacy data in CD at time of approval. "
+                "Single-injection once-monthly SC maintenance approved Oct 2025 for UC (simplified from 2-injection). "
+                "Gained first-line biologic formulary coverage from 2 of 3 largest PBMs effective Jan 2025. "
+                "Competitive context: Skyrizi (risankizumab, AbbVie) approved in both UC and CD — "
+                "direct IL-23 competitor with strong market position; "
+                "Entyvio (vedolizumab, Takeda) gut-selective with strong safety data; "
+                "Rinvoq (upadacitinib, AbbVie) JAK inhibitor active in both UC and CD."
             ),
         },
     },
@@ -321,12 +341,14 @@ DOMAIN_CONTEXT = {
                 "Amyloid confirmation by PET or CSF biomarker required for treatment eligibility."
             ),
             "market_context": (
-                "Anti-amyloid antibody class emerging as the first disease-modifying category. "
-                "Leqembi (lecanemab, Eisai/Biogen) received full FDA approval first; "
-                "Kisunla (donanemab) second to market. "
-                "Market still early-stage — patient identification, infusion infrastructure, "
-                "and ARIA monitoring are significant access and adoption barriers. "
-                "Payer coverage evolving; CMS coverage with evidence development pathway relevant."
+                "Anti-amyloid antibody class is the first disease-modifying treatment category for AD. "
+                "Leqembi (lecanemab, Eisai/Biogen) received full FDA approval Jul 2023 (traditional) — first in class; "
+                "Kisunla (donanemab, Lilly) received full FDA approval Jul 2024 (TRAILBLAZER-ALZ 2). "
+                "Market still early-stage — amyloid confirmation (PET or CSF), infusion infrastructure, "
+                "ARIA monitoring with MRI, and ApoE4 testing are significant adoption barriers. "
+                "Payer coverage evolving; CMS coverage expanding; both drugs now have Medicare coverage. "
+                "Kisunla label updated Jul 2025 with modified titration schedule that reduces ARIA-E risk "
+                "from ~24% to ~14% while preserving amyloid clearance efficacy."
             ),
             "key_population": (
                 "Adults with early symptomatic Alzheimer's disease confirmed by amyloid biomarker "
@@ -337,10 +359,19 @@ DOMAIN_CONTEXT = {
             "drug_performance": (
                 "Lilly: Kisunla (donanemab) — anti-amyloid beta antibody targeting N3pG amyloid. "
                 "Differentiated by potential treatment completion endpoint based on amyloid clearance — "
-                "unique among the class. "
-                "Competitive context: Leqembi (lecanemab) biweekly dosing vs. Kisunla monthly; "
+                "unique among the class. Monthly IV infusion. "
+                "Lilly: AMYVID (florbetapir F 18) — FDA-approved PET imaging agent for amyloid beta "
+                "neuritic plaque density in adults with cognitive impairment. "
+                "AMYVID is a critical upstream asset — amyloid PET confirmation is required for "
+                "Kisunla treatment eligibility, making AMYVID part of the patient identification "
+                "and diagnostic funnel analytics. "
+                "Key analytics implication: AMYVID scan rates and amyloid confirmation rates are "
+                "leading indicators for the Kisunla-eligible population. "
+                "Competitive context: Leqembi (lecanemab, Eisai/Biogen) biweekly dosing vs. Kisunla monthly; "
                 "ARIA profiles differ — direct head-to-head data not available; "
-                "market education and diagnosis infrastructure are shared challenges for both assets."
+                "Vizamyl (flutemetamol, GE Healthcare) and Neuraceq (florbetaben, Life Molecular) "
+                "are competing amyloid PET tracers to AMYVID; "
+                "CSF biomarker testing (Lumipulse) is an alternative to PET for amyloid confirmation."
             ),
         },
     },
@@ -368,13 +399,16 @@ DOMAIN_CONTEXT = {
                 "Key diagnosis anchor: ICD-10 E66.x."
             ),
             "drug_performance": (
-                "Lilly: Zepbound (tirzepatide) — dual GLP-1/GIP receptor agonist; "
+                "Lilly: Zepbound (tirzepatide) — dual GLP-1/GIP receptor agonist approved for chronic weight management; "
                 "superior weight loss vs. semaglutide demonstrated in SURMOUNT trials. "
-                "Also approved for moderate-to-severe OSA in adults with obesity. "
-                "Foundayo (tirzepatide) — compounding-resistant formulation positioned for "
-                "specific payer and access segments. "
+                "Also approved Dec 2024 for moderate-to-severe OSA in adults with obesity (BMI ≥30) — "
+                "first and only FDA-approved pharmacological treatment for OSA. "
+                "Foundayo (tirzepatide) — same molecule as Zepbound, positioned for "
+                "specific payer and access segments (not a compounding-resistant formulation distinction "
+                "so much as a channel and access strategy). "
                 "Competitive context: Wegovy (semaglutide 2.4mg, Novo Nordisk) established market leader "
-                "by volume; CagriSema and oral options in Novo pipeline represent future competition."
+                "by volume; oral semaglutide and CagriSema in Novo pipeline represent future competition; "
+                "orforglipron (oral GLP-1, Lilly) in late-stage development as potential oral option."
             ),
         },
         "Diabetes": {
@@ -1229,14 +1263,10 @@ def connect():
             "user":     user,
             "password": password,
         }
-        # Store in Flask session (works on JupyterHub)
         flask_session["db"] = creds
         flask_session.permanent = True
-
-        # Also store server-side with a random token (works on Posit multi-worker)
         token = _secrets.token_hex(32)
         _store_creds(token, creds)
-
         return jsonify({"status": "ok", "token": token})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
@@ -1357,18 +1387,21 @@ def validate():
             schema, table = full_name.split(".", 1)
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    # relkind: 'r' = table, 'v' = view, 'm' = materialized view
                     cur.execute("""
                         SELECT
                             a.attname                                        AS name,
                             pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
                             NOT a.attnotnull                                 AS nullable,
-                            a.attisdistkey                                   AS distkey,
-                            a.attsortkeyord                                  AS sortkey
+                            COALESCE(a.attisdistkey, false)                  AS distkey,
+                            COALESCE(a.attsortkeyord, 0)                     AS sortkey,
+                            c.relkind                                        AS relkind
                         FROM pg_catalog.pg_attribute a
                         JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
                         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
                         WHERE n.nspname = %s
                           AND c.relname = %s
+                          AND c.relkind IN ('r', 'v', 'm')
                           AND a.attnum > 0
                           AND NOT a.attisdropped
                         ORDER BY a.attnum
@@ -1376,30 +1409,37 @@ def validate():
                     cols = [dict(r) for r in cur.fetchall()]
 
                     if not cols:
-                        results[full_name] = {"ok": False, "error": "Table not found or no access"}
+                        results[full_name] = {"ok": False, "error": "Not found — check schema/name and access permissions"}
                         continue
 
-                    cur.execute("""
-                        SELECT COALESCE(reltuples::bigint, -1) AS approx_rows
-                        FROM pg_class c
-                        JOIN pg_namespace n ON n.oid = c.relnamespace
-                        WHERE n.nspname = %s AND c.relname = %s
-                    """, (schema, table))
-                    row = cur.fetchone()
-                    approx = row["approx_rows"] if row else -1
+                    relkind = cols[0].get("relkind", "r") if cols else "r"
+                    is_view = relkind in ("v", "m")
+
+                    if is_view:
+                        approx = -1
+                    else:
+                        cur.execute("""
+                            SELECT COALESCE(reltuples::bigint, -1) AS approx_rows
+                            FROM pg_class c
+                            JOIN pg_namespace n ON n.oid = c.relnamespace
+                            WHERE n.nspname = %s AND c.relname = %s
+                        """, (schema, table))
+                        row = cur.fetchone()
+                        approx = row["approx_rows"] if row else -1
 
                 results[full_name] = {
                     "ok": True,
+                    "is_view": is_view,
                     "row_count": approx,
                     "columns": [
                         {
-                            "name": c["name"],
-                            "type": c["type"],
-                            "nullable": bool(c["nullable"]),
-                            "distkey": bool(c["distkey"]),
-                            "sortkey": int(c["sortkey"]),
+                            "name": col["name"],
+                            "type": col["type"],
+                            "nullable": bool(col["nullable"]),
+                            "distkey": bool(col.get("distkey", False)),
+                            "sortkey": int(col.get("sortkey", 0)),
                         }
-                        for c in cols
+                        for col in cols
                     ],
                 }
             except Exception as e:
