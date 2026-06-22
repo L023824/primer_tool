@@ -2112,22 +2112,30 @@ function renderValResults(results) {
       continue;
     }
     const cols = meta.columns || [];
-    const rowStr = meta.row_count >= 0
-      ? meta.row_count.toLocaleString() + " rows (approx)"
-      : "row count unavailable";
+    const isView = meta.is_view || false;
+    const rowStr = isView
+      ? null
+      : meta.row_count >= 0 ? meta.row_count.toLocaleString() + " rows (approx)" : null;
     const colId = "col-" + tableName.replace(/\./g, "-");
 
-    // Primary key inference
-    const pkCols = inferPrimaryKeys(cols);
+    // Primary key inference — only meaningful for tables
+    const pkCols = isView ? [] : inferPrimaryKeys(cols);
     const dataLevel = inferDataLevel(tableName, cols, pkCols);
+
+    const viewBadge = isView
+      ? '<span style="font-size:10px;font-weight:600;padding:1px 7px;border-radius:100px;background:#f3e8ff;color:#6b21a8;margin-left:6px;">VIEW</span>'
+      : '';
+    const metaParts = [cols.length + " columns"];
+    if (rowStr) metaParts.push(rowStr);
+    if (dataLevel) metaParts.push(dataLevel);
 
     // Column chips — shown in unified chip panel below, not inline
     html += `
       <div class="val-card ok">
         <div class="val-card-header" onclick="toggleColPanel('${colId}')">
-          <span>${tableName}</span>
+          <span>${tableName}${viewBadge}</span>
           <span class="val-badge">OK</span>
-          <span class="val-card-meta">${cols.length} columns · ${rowStr}${dataLevel ? ' · ' + dataLevel : ''}</span>
+          <span class="val-card-meta">${metaParts.join(' · ')}</span>
           <span class="val-card-toggle" id="${colId}-icon">▼</span>
         </div>
         <div class="val-card-body" id="${colId}">
@@ -2136,6 +2144,7 @@ function renderValResults(results) {
             <span style="font-weight:600;color:var(--blue);">🔑 Likely primary key(s):</span>
             <code style="margin-left:6px;color:var(--blue);">${pkCols.join(", ")}</code>
           </div>` : ""}
+          ${isView ? '<div style="font-size:11px;color:#6b21a8;margin-bottom:6px;">📋 View — DIST/SORT keys and row counts not applicable</div>' : ""}
           <div style="font-size:11px;color:var(--gray-400);">Full column list available in the field browser below ↓</div>
         </div>
       </div>`;
@@ -2210,7 +2219,7 @@ function renderChipPanel(results) {
   for (const [tbl, meta] of Object.entries(results)) {
     if (!meta.ok) continue;
     const pkCols = inferPrimaryKeys(meta.columns || []);
-    tables.push({ name: tbl, cols: meta.columns || [], pkCols });
+    tables.push({ name: tbl, cols: meta.columns || [], pkCols, isView: meta.is_view || false });
   }
   if (!tables.length) { panel.innerHTML = ""; return; }
 
@@ -2249,21 +2258,25 @@ function renderChipSections(tables, query) {
     if (!filtered.length) continue;
 
     // Table name chip (header)
+    const tableLabel = tbl.isView ? '📋 ' + esc(tbl.name) : '🗄 ' + esc(tbl.name);
     const tableChip = `<span
       onclick="addColToVocab('${esc(tbl.name)}', '')"
-      title="Click to add table name to vocabulary"
+      title="Click to add table/view name to vocabulary"
       style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;
-             border:1.5px solid var(--gray-400);background:var(--gray-50);font-size:11px;
-             font-family:var(--mono);font-weight:700;color:var(--gray-600);cursor:pointer;
+             border:1.5px solid ${tbl.isView ? '#c084fc' : 'var(--gray-400)'};
+             background:${tbl.isView ? '#faf5ff' : 'var(--gray-50)'};font-size:11px;
+             font-family:var(--mono);font-weight:700;
+             color:${tbl.isView ? '#6b21a8' : 'var(--gray-600)'};cursor:pointer;
              margin-bottom:6px;transition:all 0.12s;"
       onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
-      onmouseout="this.style.borderColor='var(--gray-400)';this.style.color='var(--gray-600)'">
-      🗄 ${esc(tbl.name)}
+      onmouseout="this.style.borderColor='${tbl.isView ? '#c084fc' : 'var(--gray-400)'}';\
+this.style.color='${tbl.isView ? '#6b21a8' : 'var(--gray-600)'}'">
+      ${tableLabel}
     </span>`;
 
-    // Column chips
+    // Column chips — suppress 🔑 for views since DIST/SORT don't apply
     const colChips = filtered.map(c => {
-      const isPk = tbl.pkCols.includes(c.name);
+      const isPk = !tbl.isView && tbl.pkCols.includes(c.name);
       const matchStart = q ? c.name.toLowerCase().indexOf(q) : -1;
       const label = matchStart >= 0
         ? esc(c.name.slice(0, matchStart))

@@ -15,19 +15,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 load_dotenv()
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "primermd-dev-key-change-in-prod")
-
-# Session cookie config — required for Posit Connect (HTTPS reverse proxy).
-# os.urandom(24) as fallback causes multi-worker secret mismatch — sessions lost.
-# SameSite=None + Secure are required for cookies to survive Posit's reverse proxy.
-app.config.update(
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE="None",
-    SESSION_COOKIE_NAME="primermd_session",
-    PERMANENT_SESSION_LIFETIME=3600,
-)
-
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
@@ -1320,18 +1308,21 @@ def validate():
             schema, table = full_name.split(".", 1)
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    # relkind: 'r' = table, 'v' = view, 'm' = materialized view
                     cur.execute("""
                         SELECT
                             a.attname                                        AS name,
                             pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
                             NOT a.attnotnull                                 AS nullable,
-                            a.attisdistkey                                   AS distkey,
-                            a.attsortkeyord                                  AS sortkey
+                            COALESCE(a.attisdistkey, false)                  AS distkey,
+                            COALESCE(a.attsortkeyord, 0)                     AS sortkey,
+                            c.relkind                                        AS relkind
                         FROM pg_catalog.pg_attribute a
                         JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
                         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
                         WHERE n.nspname = %s
                           AND c.relname = %s
+                          AND c.relkind IN ('r', 'v', 'm')
                           AND a.attnum > 0
                           AND NOT a.attisdropped
                         ORDER BY a.attnum
@@ -1339,30 +1330,39 @@ def validate():
                     cols = [dict(r) for r in cur.fetchall()]
 
                     if not cols:
-                        results[full_name] = {"ok": False, "error": "Table not found or no access"}
+                        results[full_name] = {"ok": False, "error": "Not found — check schema/name spelling and access permissions"}
                         continue
 
-                    cur.execute("""
-                        SELECT COALESCE(reltuples::bigint, -1) AS approx_rows
-                        FROM pg_class c
-                        JOIN pg_namespace n ON n.oid = c.relnamespace
-                        WHERE n.nspname = %s AND c.relname = %s
-                    """, (schema, table))
-                    row = cur.fetchone()
-                    approx = row["approx_rows"] if row else -1
+                    # Determine object type for display
+                    relkind = cols[0].get("relkind", "r") if cols else "r"
+                    is_view = relkind in ("v", "m")
+
+                    # Row count — only meaningful for tables; views return -1
+                    if is_view:
+                        approx = -1
+                    else:
+                        cur.execute("""
+                            SELECT COALESCE(reltuples::bigint, -1) AS approx_rows
+                            FROM pg_class c
+                            JOIN pg_namespace n ON n.oid = c.relnamespace
+                            WHERE n.nspname = %s AND c.relname = %s
+                        """, (schema, table))
+                        row = cur.fetchone()
+                        approx = row["approx_rows"] if row else -1
 
                 results[full_name] = {
                     "ok": True,
+                    "is_view": is_view,
                     "row_count": approx,
                     "columns": [
                         {
-                            "name": c["name"],
-                            "type": c["type"],
-                            "nullable": bool(c["nullable"]),
-                            "distkey": bool(c["distkey"]),
-                            "sortkey": int(c["sortkey"]),
+                            "name": col["name"],
+                            "type": col["type"],
+                            "nullable": bool(col["nullable"]),
+                            "distkey": bool(col.get("distkey", False)),
+                            "sortkey": int(col.get("sortkey", 0)),
                         }
-                        for c in cols
+                        for col in cols
                     ],
                 }
             except Exception as e:
