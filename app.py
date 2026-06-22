@@ -15,7 +15,37 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 load_dotenv()
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "primermd-posit-stable-key-2024")
+
+# Session cookie config for Posit Connect (HTTPS reverse proxy)
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_NAME="primermd_session",
+    PERMANENT_SESSION_LIFETIME=3600,
+)
+
+# ── Server-side credential store ─────────────────────────────────────────────
+# Belt-and-suspenders fallback for Posit Connect multi-worker environments
+# where session cookies may not survive between requests.
+# Keyed by a random token the browser sends in X-Session-Token header.
+import threading, secrets as _secrets
+_cred_store = {}
+_cred_lock  = threading.Lock()
+
+def _store_creds(token, creds):
+    with _cred_lock:
+        _cred_store[token] = creds
+
+def _get_creds(token):
+    with _cred_lock:
+        return _cred_store.get(token)
+
+def _clear_creds(token):
+    with _cred_lock:
+        _cred_store.pop(token, None)
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
@@ -24,11 +54,19 @@ def get_conn():
     import psycopg2
     from flask import session as flask_session
 
-    # Shared hosted mode (Posit Connect): credentials supplied per-user via login form
-    # Local JupyterHub mode: falls back to .env environment variables
-    if "db" in flask_session:
+    creds = None
+
+    # 1. Server-side store (most reliable on Posit — survives multi-worker cookie issues)
+    token = request.headers.get("X-Session-Token")
+    if token:
+        creds = _get_creds(token)
+
+    # 2. Flask session fallback (works on JupyterHub single-worker)
+    if not creds and "db" in flask_session:
         creds = flask_session["db"]
-    else:
+
+    # 3. Environment variables (local .env mode)
+    if not creds:
         creds = {
             "host":     os.getenv("REDSHIFT_HOST",   "cwb-rs-cluster-prod.czywitd0zinp.us-east-2.redshift.amazonaws.com"),
             "port":     int(os.getenv("REDSHIFT_PORT", 5439)),
@@ -1184,14 +1222,22 @@ def connect():
             connect_timeout=10,
         )
         conn.close()
-        flask_session["db"] = {
+        creds = {
             "host":     host,
             "port":     port,
             "dbname":   dbname,
             "user":     user,
             "password": password,
         }
-        return jsonify({"status": "ok"})
+        # Store in Flask session (works on JupyterHub)
+        flask_session["db"] = creds
+        flask_session.permanent = True
+
+        # Also store server-side with a random token (works on Posit multi-worker)
+        token = _secrets.token_hex(32)
+        _store_creds(token, creds)
+
+        return jsonify({"status": "ok", "token": token})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 
@@ -1200,6 +1246,9 @@ def connect():
 def disconnect():
     from flask import session as flask_session
     flask_session.pop("db", None)
+    token = request.headers.get("X-Session-Token")
+    if token:
+        _clear_creds(token)
     return jsonify({"status": "ok"})
 
 @app.route("/")
@@ -1308,21 +1357,18 @@ def validate():
             schema, table = full_name.split(".", 1)
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-                    # relkind: 'r' = table, 'v' = view, 'm' = materialized view
                     cur.execute("""
                         SELECT
                             a.attname                                        AS name,
                             pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
                             NOT a.attnotnull                                 AS nullable,
-                            COALESCE(a.attisdistkey, false)                  AS distkey,
-                            COALESCE(a.attsortkeyord, 0)                     AS sortkey,
-                            c.relkind                                        AS relkind
+                            a.attisdistkey                                   AS distkey,
+                            a.attsortkeyord                                  AS sortkey
                         FROM pg_catalog.pg_attribute a
                         JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
                         JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
                         WHERE n.nspname = %s
                           AND c.relname = %s
-                          AND c.relkind IN ('r', 'v', 'm')
                           AND a.attnum > 0
                           AND NOT a.attisdropped
                         ORDER BY a.attnum
@@ -1330,39 +1376,30 @@ def validate():
                     cols = [dict(r) for r in cur.fetchall()]
 
                     if not cols:
-                        results[full_name] = {"ok": False, "error": "Not found — check schema/name spelling and access permissions"}
+                        results[full_name] = {"ok": False, "error": "Table not found or no access"}
                         continue
 
-                    # Determine object type for display
-                    relkind = cols[0].get("relkind", "r") if cols else "r"
-                    is_view = relkind in ("v", "m")
-
-                    # Row count — only meaningful for tables; views return -1
-                    if is_view:
-                        approx = -1
-                    else:
-                        cur.execute("""
-                            SELECT COALESCE(reltuples::bigint, -1) AS approx_rows
-                            FROM pg_class c
-                            JOIN pg_namespace n ON n.oid = c.relnamespace
-                            WHERE n.nspname = %s AND c.relname = %s
-                        """, (schema, table))
-                        row = cur.fetchone()
-                        approx = row["approx_rows"] if row else -1
+                    cur.execute("""
+                        SELECT COALESCE(reltuples::bigint, -1) AS approx_rows
+                        FROM pg_class c
+                        JOIN pg_namespace n ON n.oid = c.relnamespace
+                        WHERE n.nspname = %s AND c.relname = %s
+                    """, (schema, table))
+                    row = cur.fetchone()
+                    approx = row["approx_rows"] if row else -1
 
                 results[full_name] = {
                     "ok": True,
-                    "is_view": is_view,
                     "row_count": approx,
                     "columns": [
                         {
-                            "name": col["name"],
-                            "type": col["type"],
-                            "nullable": bool(col["nullable"]),
-                            "distkey": bool(col.get("distkey", False)),
-                            "sortkey": int(col.get("sortkey", 0)),
+                            "name": c["name"],
+                            "type": c["type"],
+                            "nullable": bool(c["nullable"]),
+                            "distkey": bool(c["distkey"]),
+                            "sortkey": int(c["sortkey"]),
                         }
-                        for col in cols
+                        for c in cols
                     ],
                 }
             except Exception as e:

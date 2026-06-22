@@ -1242,7 +1242,7 @@ function handleSessionFile(file) {
   const fd = new FormData();
   fd.append("session", file);
 
-  fetch(apiUrl("/load_session"), { method: "POST", body: fd })
+  fetch(apiUrl("/load_session"), { method: "POST", headers: _sessionToken ? {"X-Session-Token": _sessionToken} : {}, body: fd })
     .then(r => r.json())
     .then(data => {
       if (data.error) {
@@ -1932,7 +1932,7 @@ async function fetchDomainContext(i, indication) {
   if (!ta || !indication) return;
 
   try {
-    const res = await fetch(apiUrl(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`));
+    const res = await fetch(apiUrl(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`), { headers: apiHeaders() });
     if (!res.ok) {
       console.warn(`fetchDomainContext: server returned ${res.status} for ${ta}/${indication}`);
       return;
@@ -2070,7 +2070,7 @@ async function runValidation() {
   try {
     const resp = await fetch(apiUrl("/validate"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders(),
       body: JSON.stringify({ tables }),
     });
     if (!resp.ok) {
@@ -3279,7 +3279,7 @@ async function downloadAll() {
   try {
     const resp = await fetch(apiUrl("/generate"), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders(),
       body: JSON.stringify(state),
     });
     if (!resp.ok) {
@@ -3342,9 +3342,19 @@ function reset() {
 
 // ── Connection screen logic ───────────────────────────────────────────────────
 
+// Server-side session token — stored in memory, sent on every API request.
+// Bypasses Flask session cookie issues on Posit Connect multi-worker deployments.
+let _sessionToken = null;
+
+function apiHeaders(extra) {
+  const h = Object.assign({ "Content-Type": "application/json" }, extra || {});
+  if (_sessionToken) h["X-Session-Token"] = _sessionToken;
+  return h;
+}
+
 async function checkConnection() {
   try {
-    const res = await fetch(apiUrl("/status"));
+    const res = await fetch(apiUrl("/status"), { headers: apiHeaders() });
     const data = await res.json();
     if (data.connected) {
       showMainApp();
@@ -3352,7 +3362,6 @@ async function checkConnection() {
       showConnectScreen();
     }
   } catch (e) {
-    // If /status itself fails (e.g. app starting up), show connect screen
     showConnectScreen();
   }
 }
@@ -3393,6 +3402,8 @@ async function submitConnect() {
     });
     const data = await res.json();
     if (data.status === "ok") {
+      // Store the server-side token for all subsequent requests
+      if (data.token) _sessionToken = data.token;
       showMainApp();
     } else {
       err.textContent = data.message || "Connection failed. Check your credentials and try again.";
