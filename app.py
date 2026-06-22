@@ -15,7 +15,19 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 load_dotenv()
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "primermd-dev-key-change-in-prod")
+
+# Session cookie config — required for Posit Connect (HTTPS reverse proxy).
+# os.urandom(24) as fallback causes multi-worker secret mismatch — sessions lost.
+# SameSite=None + Secure are required for cookies to survive Posit's reverse proxy.
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_NAME="primermd_session",
+    PERMANENT_SESSION_LIFETIME=3600,
+)
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
