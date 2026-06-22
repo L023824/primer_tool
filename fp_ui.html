@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>File Primer — Lilly BI&A</title>
+<title>primerMD — Lilly BI&A</title>
 <style>
   :root {
     --red: #D52B1E;
@@ -1084,8 +1084,8 @@
   <div style="background:#fff; border:1px solid var(--gray-200); border-radius:var(--radius-lg);
               padding:40px 36px; width:420px; box-shadow:var(--shadow-md);">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
-      <div class="logo-mark" style="width:32px;height:32px;font-size:13px;">FP</div>
-      <span style="font-weight:700;font-size:16px;color:var(--gray-800);">File Primer</span>
+      <div class="logo-mark" style="width:32px;height:32px;font-size:13px;">pM</div>
+      <span style="font-weight:700;font-size:16px;color:var(--gray-800);">primerMD</span>
     </div>
     <h2 style="font-size:20px;font-weight:700;color:var(--gray-800);margin-bottom:6px;">
       Sign in to continue
@@ -1129,8 +1129,8 @@
 
 <header>
   <a class="logo" href="#" onclick="renderHome(); return false;">
-    <div class="logo-mark">FP</div>
-    <span class="logo-text">File Primer</span>
+    <div class="logo-mark">pM</div>
+    <span class="logo-text">primerMD</span>
     <span class="logo-sub">BI&A scaffold generator</span>
   </a>
   <nav id="env-badge"></nav>
@@ -1146,26 +1146,10 @@
 
 <script>
 // ── State ────────────────────────────────────────────────────────────────────
-// ── Base URL helper — works behind Posit Connect reverse proxy ────────────────
-// Posit Connect serves this app at /content/{guid}/
-// We detect whether we're on Posit or JupyterHub and route accordingly.
-const BASE_URL = (() => {
-  const href = window.location.href;
-  // If running on Posit Connect — URL contains /content/{guid}/
-  const positMatch = href.match(/(https?:\/\/[^/]+\/content\/[^/]+)\/?/);
-  if (positMatch) return positMatch[1] + "/";
-  // Otherwise running locally on JupyterHub — use relative root
-  return window.location.origin + "/";
-})();
-function apiUrl(path) {
-  return BASE_URL + path.replace(/^\//, "");
-}
-
 const STEPS = [
   { id: "mode",       label: "Output type" },
-  { id: "details",   label: "Project details" },
-  { id: "domain",    label: "Domain context" },
-  { id: "tables",    label: "Tables" },
+  { id: "details",   label: "Project & Domain" },
+  { id: "tables",    label: "Tables & Vocab" },
   { id: "kpis",      label: "KPIs" },
   { id: "validate",  label: "Completeness" },
   { id: "preview",   label: "Preview & download" },
@@ -1185,11 +1169,13 @@ let state = {
   description: "",
   owner: "",
   audience: [],
-  // Domain context — Step 2b (multi-domain)
+  // Domain context — merged into Step 2 (multi-domain)
   domains: [
     {therapeutic_area:"", brand:"", indication:[], indication_other:"", data_sources:[], data_sources_other:"", key_population:{}, known_exclusions:"", market_context:{}, disease_state:{}, drug_performance:{}, additional_context:""},
   ],
   vocab: [{term:"",definition:""},{term:"",definition:""}],
+  table_vocab: [{term:"",alias:"",definition:""},{term:"",alias:"",definition:""}],
+  stakeholder_images: [],
   tables_raw: "",
   validated_tables: {},
   kpis: [
@@ -1243,7 +1229,7 @@ function handleSessionFile(file) {
   const fd = new FormData();
   fd.append("session", file);
 
-  fetch(apiUrl("/load_session"), { method: "POST", body: fd })
+  fetch("/load_session", { method: "POST", body: fd })
     .then(r => r.json())
     .then(data => {
       if (data.error) {
@@ -1414,10 +1400,10 @@ function renderHome() {
   <div class="home-wrap">
 
     <div class="home-hero">
-      <div class="home-hero-mark">FP</div>
+      <div class="home-hero-mark">pM</div>
       <div class="home-hero-text">
         <h1>Your Claude Code project,<br><em>ready before you start typing.</em></h1>
-        <p>File Primer generates a structured set of scaffold files — domain context, table metadata, KPI definitions, SQL pattern guidance — wired to your real Redshift tables. Drop them into a Claude Code project and skip the 20-minute context-setting conversation at the start of every analysis.</p>
+        <p>primerMD generates a structured set of scaffold files — domain context, table metadata, KPI definitions, SQL pattern guidance — wired to your real Redshift tables. Drop them into a Claude Code project and skip the 20-minute context-setting conversation at the start of every analysis.</p>
 
         <div class="home-split">
           <div class="home-split-card primary">
@@ -1454,7 +1440,7 @@ function renderHome() {
       <div class="home-step-card">
         <div class="home-step-num">2</div>
         <h4>Validate against Redshift</h4>
-        <p>File Primer connects to your Redshift instance and pulls live column metadata — DIST keys, SORT keys, types, nullability.</p>
+        <p>primerMD connects to your Redshift instance and pulls live column metadata — DIST keys, SORT keys, types, nullability.</p>
       </div>
       <div class="home-step-card">
         <div class="home-step-num">3</div>
@@ -1469,25 +1455,25 @@ function renderHome() {
 
       <div class="prompt-scenario">Scenario 1 — Building a SQL metric from scratch</div>
       <div class="prompt-pair">
-        <div class="prompt-pair-label without"><span class="dot"></span> Without File Primer</div>
+        <div class="prompt-pair-label without"><span class="dot"></span> Without primerMD</div>
         <div class="prompt-body without">"I need a rolling 3-month NBRx metric for Jaypirca. The data is in apld_ex.elaad_oncology_masterdata. Grain is one row per HCP per month. Use NPI as the HCP identifier, rx_date as the date column. We only want community oncology HCPs — exclude academic medical centers. Use persistent temp tables, not CTEs, because of WLM abort risk on our Redshift cluster. Brand launched Q3 2023 so filter from July 2023 onwards. Rolling window needs ROWS BETWEEN not RANGE BETWEEN — Redshift doesn't support RANGE with date intervals. Pre-aggregate to monthly grain first before applying the window..."</div>
-        <div class="prompt-pair-label with"><span class="dot"></span> With File Primer</div>
+        <div class="prompt-pair-label with"><span class="dot"></span> With primerMD</div>
         <div class="prompt-body with">"Build the NBRx Rolling 3M metric from EXAMPLES.md."</div>
       </div>
 
       <div class="prompt-scenario">Scenario 2 — Debugging a row count issue</div>
       <div class="prompt-pair">
-        <div class="prompt-pair-label without"><span class="dot"></span> Without File Primer</div>
+        <div class="prompt-pair-label without"><span class="dot"></span> Without primerMD</div>
         <div class="prompt-body without">"My patient count is doubling after I join the masterdata table to the HCP dimension table. I think it's a fan-out issue. The patient table has one row per fill event. The HCP table has one row per NPI. I'm joining on prescriber_npi. Not sure if the HCP table has duplicates or if there's a many-to-many somewhere. Can you help me debug?"</div>
-        <div class="prompt-pair-label with"><span class="dot"></span> With File Primer</div>
+        <div class="prompt-pair-label with"><span class="dot"></span> With primerMD</div>
         <div class="prompt-body with">"My patient count is doubling after the join to elaad_dim_provider_plus. Check schema_reference.md for the key structure and apply the deduplication pattern from kpi_definitions.md."</div>
       </div>
 
       <div class="prompt-scenario">Scenario 3 — TUA classification for a new time period</div>
       <div class="prompt-pair">
-        <div class="prompt-pair-label without"><span class="dot"></span> Without File Primer</div>
+        <div class="prompt-pair-label without"><span class="dot"></span> Without primerMD</div>
         <div class="prompt-body without">"I need to update the TUA classification for Ebglyss through March 2026. TUA stands for Trialist/User/Adopter — it's cumulative, so once an HCP hits a threshold they stay there. Trialist is 1 distinct patient, User is 2-3, Adopter is 4+. Use lb_months = 98 for inception-to-date. The source table is the LAAD masterdata. Dedup on patient-day level before counting — same-day duplicates inflate the count. Don't use CTEs, use persistent temp tables. The HCP identifier is NPI..."</div>
-        <div class="prompt-pair-label with"><span class="dot"></span> With File Primer</div>
+        <div class="prompt-pair-label with"><span class="dot"></span> With primerMD</div>
         <div class="prompt-body with">"Refresh the Ebglyss TUA classification through March 2026. Use the thresholds and lb_months in kpi_definitions.md."</div>
       </div>
 
@@ -1617,7 +1603,7 @@ function back() { goTo(state.currentStep - 1); }
 function renderStep() {
   const el = $("main-content");
   const renderers = [
-    renderMode, renderDetails, renderDomain, renderTables,
+    renderMode, renderDetails, renderTables,
     renderKPIs, renderValidation, renderPreview,
   ];
   el.innerHTML = "";
@@ -1633,7 +1619,7 @@ function renderMode(el) {
     <div class="panel">
       <div class="panel-title">About this project</div>
       <div class="step-info-row">
-        <div class="panel-subtitle">File Primer generates the full scaffold for every project. One optional file — <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">styling_guide.md</code> — is only useful if your deliverable is a visual output.</div>
+        <div class="panel-subtitle">primerMD generates the full scaffold for every project. One optional file — <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">styling_guide.md</code> — is only useful if your deliverable is a visual output.</div>
         <button class="info-btn" id="btn-info-mode" onclick="toggleInfo('info-mode')" title="What to know">?</button>
       </div>
       <div class="info-drawer" id="info-mode">
@@ -1679,22 +1665,22 @@ function toggleVisual() {
   renderStep();
 }
 
-// ── Step 2: Project details ──────────────────────────────────────────────────
+// ── Step 2: Project details + Domain context ─────────────────────────────────
 function renderDetails(el) {
   el.innerHTML = `
     <div class="panel">
-      <div class="panel-title">Project details</div>
+      <div class="panel-title">Project &amp; Domain</div>
       <div class="step-info-row">
-        <div class="panel-subtitle">These fields populate <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">CLAUDE.md</code> and <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">README.md</code> — the more context, the better the scaffold.</div>
+        <div class="panel-subtitle">These fields populate <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">CLAUDE.md</code> and <code style="font-size:12px;background:var(--gray-100);padding:1px 5px;border-radius:4px">README.md</code>. Domain context is auto-filled from the indication you select.</div>
         <button class="info-btn" id="btn-info-details" onclick="toggleInfo('info-details')" title="What to know">?</button>
       </div>
       <div class="info-drawer" id="info-details">
-        <strong>Granularity guidance</strong>
+        <strong>Guidance</strong>
         <ul>
           <li><strong>Project name</strong> — be specific. "Jaypirca CLL HCP Opportunity Q2 2026" is more useful than "BTK analysis". Claude uses this in file headers and temp table naming.</li>
-          <li><strong>Description</strong> — one or two sentences: what question is this answering and what decision does it support? e.g. "Identifies high-opportunity HCPs ahead of anticipated 1L CLL launch using BTK decile and patient funnel data."</li>
-          <li><strong>Owner / DRI</strong> — your WWID or name. Appears in README revision history.</li>
-          <li><strong>Audience</strong> — select all that apply. This shapes tone and framing in <code>stakeholder_notes.md</code> and how Claude pitches complexity in explanations.</li>
+          <li><strong>Description</strong> — one or two sentences: what question is this answering and what decision does it support?</li>
+          <li><strong>Domain context</strong> — select the therapeutic area and indication. Context cards (disease state, key population, market context, drug performance) are auto-filled. You can add extra context in the free-text box below.</li>
+          <li><strong>Business vocabulary</strong> — define any project-specific terms so Claude never guesses at internal terminology.</li>
         </ul>
       </div>
 
@@ -1710,22 +1696,17 @@ function renderDetails(el) {
                   oninput="state.description = this.value">${esc(state.description)}</textarea>
       </div>
 
-      <div class="field-group">
-        <label class="field-label">Owner / DRI</label>
-        <input type="text" id="f-owner" placeholder="e.g. l023824 / Adhira"
-               value="${esc(state.owner)}" oninput="state.owner = this.value">
+      <div class="divider"></div>
+
+      <div style="font-size:13px;font-weight:600;color:var(--gray-800);margin-bottom:14px;">Domain context</div>
+
+      <div id="domain-blocks">
+        ${(state.domains||[]).map((d, i) => domainBlock(d, i)).join("")}
       </div>
 
-      <div class="field-group">
-        <label class="field-label">Audience</label>
-        <div class="chip-group" id="audience-chips">
-          ${AUDIENCES.map(a => `
-            <div class="chip ${state.audience.includes(a) ? "selected" : ""}"
-                 onclick="toggleAudience('${a}', this)">${a}</div>
-          `).join("")}
-        </div>
-        <div class="field-hint">Select all that apply. This shapes the communication style of generated notes.</div>
-      </div>
+      ${(state.domains||[]).length < 3 ? `
+      <button class="btn btn-secondary" style="margin-bottom:1rem" onclick="addDomain()">+ Add domain</button>
+      ` : ""}
 
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="back()">← Back</button>
@@ -1755,7 +1736,7 @@ function detailsNext() {
   next();
 }
 
-// ── Step 2b: Domain context ──────────────────────────────────────────────────
+// ── Domain context (embedded in Step 2: Project & Domain) ─────────────────────
 
 const DOMAIN_CONFIG = {
   "Oncology":       ["CLL", "MCL", "eBC", "mBC", "Lung Cancer", "Multiple Myeloma", "Prostate Cancer", "Other"],
@@ -1769,57 +1750,6 @@ const DATA_SOURCES = [
   "LAAD", "ELAAD", "IQVIA MMIT (Oncology)", "IQVIA MMIT (Plans)",
   "IQVIA Claims", "Komodo", "MiBA", "Guardant 360", "Symphony Health", "APLD", "Other",
 ];
-
-function renderDomain(el) {
-  el.innerHTML = `
-    <div class="panel">
-      <div class="panel-title">Domain context</div>
-      <div class="step-info-row">
-        <div class="panel-subtitle">All fields here flow directly into <strong>CLAUDE.md</strong> — therapeutic area, market context, data sources, population scope, and business vocabulary. Add a second domain for cross-TA projects.</div>
-        <button class="info-btn" id="btn-info-domain" onclick="toggleInfo('info-domain')" title="What to know">?</button>
-      </div>
-      <div class="info-drawer" id="info-domain">
-        <strong>Granularity guidance</strong>
-        <ul>
-          <li><strong>Therapeutic area + brand</strong> — select from the dropdown. Indication chips appear conditionally based on TA. Select all indications in scope for this project.</li>
-          <li><strong>Data sources</strong> — select every source this project touches. Each source gets a brief context note in <code>CLAUDE.md</code> (e.g. LAAD = longitudinal patient-level claims, ELAAD = enhanced with HCP attribution). Claude uses this to know which tables are authoritative for which questions.</li>
-          <li><strong>Key population</strong> — the patient or HCP universe. Be specific: "CLL patients with ≥1 BTKi claim in the last 24 months, excluding clinical trial enrollees" is better than "CLL patients". This becomes the population definition Claude applies by default.</li>
-          <li><strong>Known exclusions</strong> — anything explicitly out of scope. Specialty pharmacy, payer types, geographies, data sources. Claude will apply these as default filters.</li>
-          <li><strong>Business vocabulary</strong> — define project-specific terms. e.g. "Active prescriber = HCP with ≥1 NBRx in rolling 3M". These go into a vocab table in <code>CLAUDE.md</code> so Claude never guesses at internal terminology.</li>
-          <li><strong>Multiple domains</strong> — add a second block for cross-TA overlap analyses (e.g. IBD × Obesity, CLL × MCL). Each domain gets its own section in <code>CLAUDE.md</code>.</li>
-        </ul>
-      </div>
-
-      <div id="domain-blocks">
-        ${(state.domains||[]).map((d, i) => domainBlock(d, i)).join("")}
-      </div>
-
-      ${(state.domains||[]).length < 3 ? `
-      <button class="btn btn-secondary" style="margin-bottom:1rem" onclick="addDomain()">+ Add domain</button>
-      ` : ""}
-
-      <div class="divider"></div>
-
-      <div class="field-group">
-        <label class="field-label">Business vocabulary</label>
-        <div class="field-hint" style="margin-bottom:10px;">
-          Define project-specific terms so Claude never has to ask. e.g. "NBRx = New-to-Brand Rx",
-          "BTK decile = volume decile based on Acalabrutinib/Zanubrutinib/Ibrutinib NBRx".
-          These apply across all domains.
-        </div>
-        <div id="vocab-fields">
-          ${(state.vocab||[]).map((v,i) => vocabRow(v,i)).join("")}
-        </div>
-        <button class="btn btn-secondary" style="margin-top:6px" onclick="addVocab()">+ Add term</button>
-      </div>
-
-      <div class="btn-row">
-        <button class="btn btn-secondary" onclick="back()">← Back</button>
-        <button class="btn btn-primary" onclick="next()">Continue →</button>
-        <button class="btn btn-ghost" onclick="reset()">Start over</button>
-      </div>
-    </div>`;
-}
 
 function buildPreviewCards(d, i) {
   const activeIndications = (d.indication || []).filter(x => x !== "Other");
@@ -1989,7 +1919,7 @@ async function fetchDomainContext(i, indication) {
   if (!ta || !indication) return;
 
   try {
-    const res = await fetch(apiUrl(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`));
+    const res = await fetch(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`);
     if (!res.ok) {
       console.warn(`fetchDomainContext: server returned ${res.status} for ${ta}/${indication}`);
       return;
@@ -2028,41 +1958,13 @@ function removeDomain(i) {
   renderStep();
 }
 
-function vocabRow(v, i) {
-  return `<div style="display:grid;grid-template-columns:1fr 2fr 24px;gap:8px;margin-bottom:8px;align-items:center;">
-    <input type="text" placeholder="Term (e.g. NBRx)"
-           value="${esc(v.term||'')}" oninput="state.vocab[${i}].term = this.value"
-           style="font-size:13px;">
-    <input type="text" placeholder="Definition"
-           value="${esc(v.definition||'')}" oninput="state.vocab[${i}].definition = this.value"
-           style="font-size:13px;">
-    ${i >= 2 ? `<button onclick="removeVocab(${i})"
-      style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:16px;padding:0;">✕</button>` : "<span></span>"}
-  </div>`;
-}
-
-function addVocab() {
-  if (!state.vocab) state.vocab = [];
-  state.vocab.push({term:"", definition:""});
-  const container = $("vocab-fields");
-  const i = state.vocab.length - 1;
-  const div = document.createElement("div");
-  div.innerHTML = vocabRow({term:"",definition:""}, i);
-  container.appendChild(div.firstElementChild);
-}
-
-function removeVocab(i) {
-  state.vocab.splice(i, 1);
-  renderStep();
-}
-
-// ── Step 3: Tables — with inline validation ───────────────────────────────────
+// ── Step 3: Tables — with inline validation + PK inference + vocab drag-drop ──
 function renderTables(el) {
   el.innerHTML = `
     <div class="panel">
       <div class="panel-title">Redshift tables</div>
       <div class="step-info-row">
-        <div class="panel-subtitle">Enter tables as <code style="background:var(--gray-100);padding:1px 5px;border-radius:4px;font-size:12px">schema.table_name</code>, one per line. Validate to confirm access and pull live column metadata.</div>
+        <div class="panel-subtitle">Enter tables as <code style="background:var(--gray-100);padding:1px 5px;border-radius:4px;font-size:12px">schema.table_name</code>, one per line. Validate to confirm access and pull live column metadata — including primary key inference and data level detection.</div>
         <button class="info-btn" id="btn-info-tables" onclick="toggleInfo('info-tables')" title="What to know">?</button>
       </div>
       <div class="info-drawer" id="info-tables">
@@ -2070,8 +1972,8 @@ function renderTables(el) {
         <ul>
           <li><strong>Which tables to include</strong> — add every table your SQL will touch, including dimension/lookup tables. Column metadata from all validated tables feeds into <code>schema_reference.md</code> and is used to substitute real column names into <code>EXAMPLES.md</code>.</li>
           <li><strong>Validation</strong> — connects to your Redshift instance and reads <code>pg_catalog.pg_attribute</code>. No data is read, only schema metadata. Validation is non-blocking — warnings don't prevent download.</li>
-          <li><strong>What the metadata cards show</strong> — DISTKEY (the column Redshift uses for node distribution, important for join performance), SORTKEY (ordering for range scans), NOT NULL constraints, and approximate row count from <code>pg_class.reltuples</code>.</li>
-          <li><strong>If a table fails validation</strong> — check schema spelling and access permissions. The scaffold still generates; <code>schema_reference.md</code> will note the failure and column names will fall back to placeholders in <code>EXAMPLES.md</code>.</li>
+          <li><strong>Primary key inference</strong> — inferred from DISTKEY, NOT NULL, and column naming conventions (columns ending in _id, _key, _cd). This identifies the likely grain of each table.</li>
+          <li><strong>Vocabulary</strong> — appears below validation. Covers field aliases (drag columns in), internal jargon (NBRx, RHM, TUA), and standing project conventions that apply across every KPI (e.g. "always exclude AMCs"). Fills the Vocabulary section in <code>CLAUDE.md</code>.</li>
         </ul>
       </div>
 
@@ -2090,6 +1992,35 @@ function renderTables(el) {
       </div>
 
       <div id="val-results-area"></div>
+
+      <div id="table-vocab-section">
+        <div class="divider"></div>
+        <div style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:4px;">Vocabulary</div>
+        <div style="font-size:12px;color:var(--gray-600);margin-bottom:10px;line-height:1.55;">
+          One place for everything Claude shouldn't have to guess — field aliases, internal jargon, and standing project conventions.
+          <strong>Click any column chip above</strong> to drop it into the next empty row here.
+        </div>
+
+        <!-- Similar field alerts -->
+        <div id="similar-field-alerts"></div>
+
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 2fr 24px;gap:8px;margin-bottom:4px;padding:0 2px;">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-400);">Term / Field</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-400);">Alias / Also known as</div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--gray-400);">Definition / Convention</div>
+          <div></div>
+        </div>
+
+        <div id="table-vocab-fields">
+          ${(state.table_vocab||[]).map((v,i) => tableVocabRow(v,i)).join("")}
+        </div>
+        <button class="btn btn-secondary" style="margin-top:6px" onclick="addTableVocab()">+ Add entry</button>
+        <div class="field-hint" style="margin-top:8px;">
+          Examples — <strong>Term</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">eph_reference_id</code> · <strong>Alias</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">eph_reference_cust_id</code> · <strong>Definition</strong>: Patient-level surrogate key, use as primary join key across LAAD/ELAAD.
+          Or — <strong>Term</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">Community only</code> · <strong>Alias</strong>: — · <strong>Definition</strong>: Always exclude Academic Medical Centers (account_type = 'AMC') from HCP universe.
+        </div>
+      </div>
 
       <div class="btn-row">
         <button class="btn btn-secondary" onclick="back()">← Back</button>
@@ -2124,7 +2055,7 @@ async function runValidation() {
   label.textContent = "Validating…";
 
   try {
-    const resp = await fetch(apiUrl("/validate"), {
+    const resp = await fetch("/validate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tables }),
@@ -2172,38 +2103,366 @@ function renderValResults(results) {
       ? meta.row_count.toLocaleString() + " rows (approx)"
       : "row count unavailable";
     const colId = "col-" + tableName.replace(/\./g, "-");
+
+    // Primary key inference
+    const pkCols = inferPrimaryKeys(cols);
+    const dataLevel = inferDataLevel(tableName, cols, pkCols);
+
+    // Column chips — shown in unified chip panel below, not inline
     html += `
       <div class="val-card ok">
         <div class="val-card-header" onclick="toggleColPanel('${colId}')">
           <span>${tableName}</span>
           <span class="val-badge">OK</span>
-          <span class="val-card-meta">${cols.length} columns · ${rowStr}</span>
+          <span class="val-card-meta">${cols.length} columns · ${rowStr}${dataLevel ? ' · ' + dataLevel : ''}</span>
           <span class="val-card-toggle" id="${colId}-icon">▼</span>
         </div>
         <div class="val-card-body" id="${colId}">
-          <table class="col-table">
-            <thead><tr><th>#</th><th>Column</th><th>Type</th><th>Nullable</th><th>Keys</th></tr></thead>
-            <tbody>
-              ${cols.map((c, i) => {
-                const keys = [];
-                if (c.distkey) keys.push('<span class="badge-dist">DIST</span>');
-                if (c.sortkey > 0) keys.push(`<span class="badge-sort">SORT${c.sortkey}</span>`);
-                if (!c.nullable) keys.push('<span class="badge-nn">NOT NULL</span>');
-                return `<tr>
-                  <td style="color:var(--gray-400)">${i + 1}</td>
-                  <td><strong>${c.name}</strong></td>
-                  <td>${c.type}</td>
-                  <td>${c.nullable ? "Yes" : "No"}</td>
-                  <td>${keys.join(" ")}</td>
-                </tr>`;
-              }).join("")}
-            </tbody>
-          </table>
+          ${pkCols.length ? `
+          <div style="background:var(--blue-light);border:1px solid #c5d3f0;border-radius:var(--radius);padding:7px 12px;margin-bottom:8px;font-size:12px;">
+            <span style="font-weight:600;color:var(--blue);">🔑 Likely primary key(s):</span>
+            <code style="margin-left:6px;color:var(--blue);">${pkCols.join(", ")}</code>
+          </div>` : ""}
+          <div style="font-size:11px;color:var(--gray-400);">Full column list available in the field browser below ↓</div>
         </div>
       </div>`;
   }
-  html += "</div>";
-  area.innerHTML = html;
+  area.innerHTML = html + "</div>";
+
+  // Build the all-tables chip panel (replaces old per-card chips)
+  renderChipPanel(results);
+
+  // Show vocab section always after validation
+  const vocabSection = $("table-vocab-section");
+  if (vocabSection) vocabSection.style.display = "";
+  if (!state.table_vocab || !state.table_vocab.length) {
+    state.table_vocab = [{term:"",alias:"",definition:"",source:""},{term:"",alias:"",definition:"",source:""}];
+  }
+  refreshTableVocabUI();
+
+  // Only show similar field alerts when 2+ tables validated
+  const okCount = Object.values(results).filter(r => r.ok).length;
+  if (okCount >= 2) renderSimilarFieldAlerts();
+}
+
+// ── Primary key & data level inference ───────────────────────────────────────
+function inferPrimaryKeys(cols) {
+  const pks = [];
+  // 1. Explicit DIST + NOT NULL
+  const distCol = cols.find(c => c.distkey && !c.nullable);
+  if (distCol) pks.push(distCol.name);
+  // 2. Sort key 1 + NOT NULL, not already in list
+  const sort1 = cols.find(c => c.sortkey === 1 && !c.nullable);
+  if (sort1 && !pks.includes(sort1.name)) pks.push(sort1.name);
+  // 3. Column name heuristic: ends in _id / _key / _cd + NOT NULL
+  const heuristics = cols.filter(c =>
+    !c.nullable &&
+    /_id$|_key$|_cd$|_num$/.test(c.name) &&
+    !pks.includes(c.name)
+  ).slice(0, 2);
+  heuristics.forEach(c => pks.push(c.name));
+  return pks.slice(0, 3);
+}
+
+function inferDataLevel(tableName, cols, pkCols) {
+  const name = tableName.toLowerCase();
+  const hasPat = cols.some(c => /patient|prsn|member/.test(c.name.toLowerCase()));
+  const hasHcp = cols.some(c => /provider|npi|prescrib/.test(c.name.toLowerCase()));
+  const hasDate = cols.some(c => /date|month|dt$/.test(c.name.toLowerCase()));
+  const hasClaim = cols.some(c => /claim|fill|rx|dispensing/.test(c.name.toLowerCase()));
+
+  if (hasClaim && hasPat && hasHcp) return "Claim / fill level";
+  if (hasPat && hasDate) return "Patient × date";
+  if (hasHcp && hasDate) return "HCP × month";
+  if (hasPat && !hasDate) return "Patient level";
+  if (hasHcp && !hasDate) return "HCP level";
+  if (/dim_|_dim|_lookup|_ref/.test(name)) return "Dimension / lookup";
+  return "";
+}
+
+// ── Unified field browser — search + table section chips ─────────────────────
+function renderChipPanel(results) {
+  // Find or create container just before the vocab section
+  let panel = $("chip-panel");
+  if (!panel) {
+    const vocabSection = $("table-vocab-section");
+    if (!vocabSection) return;
+    panel = document.createElement("div");
+    panel.id = "chip-panel";
+    vocabSection.parentNode.insertBefore(panel, vocabSection);
+  }
+
+  // Build flat index of all cols per table for search
+  const tables = [];
+  for (const [tbl, meta] of Object.entries(results)) {
+    if (!meta.ok) continue;
+    const pkCols = inferPrimaryKeys(meta.columns || []);
+    tables.push({ name: tbl, cols: meta.columns || [], pkCols });
+  }
+  if (!tables.length) { panel.innerHTML = ""; return; }
+
+  // Store on window for search reuse
+  window._chipTables = tables;
+
+  panel.innerHTML = `
+    <div class="divider"></div>
+    <div style="font-size:14px;font-weight:600;color:var(--gray-800);margin-bottom:4px;">Field browser</div>
+    <div style="font-size:12px;color:var(--gray-600);margin-bottom:10px;line-height:1.5;">
+      Click any field chip to add it to the vocabulary below. 🔑 marks inferred primary keys.
+    </div>
+    <div style="position:relative;margin-bottom:12px;">
+      <input type="text" id="chip-search"
+             placeholder="Search fields across all tables…"
+             oninput="filterChips(this.value)"
+             style="width:100%;padding:8px 12px 8px 34px;font-size:13px;border:1px solid var(--gray-200);
+                    border-radius:var(--radius);font-family:var(--font);outline:none;
+                    transition:border-color 0.15s;"
+             onfocus="this.style.borderColor='var(--red)'"
+             onblur="this.style.borderColor='var(--gray-200)'">
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--gray-400);pointer-events:none;">🔍</span>
+    </div>
+    <div id="chip-panel-body">
+      ${renderChipSections(tables, "")}
+    </div>`;
+}
+
+function renderChipSections(tables, query) {
+  const q = (query || "").toLowerCase().trim();
+  let html = "";
+  for (const tbl of tables) {
+    const filtered = q
+      ? tbl.cols.filter(c => c.name.toLowerCase().includes(q))
+      : tbl.cols;
+    if (!filtered.length) continue;
+
+    // Table name chip (header)
+    const tableChip = `<span
+      onclick="addColToVocab('${esc(tbl.name)}', '')"
+      title="Click to add table name to vocabulary"
+      style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;
+             border:1.5px solid var(--gray-400);background:var(--gray-50);font-size:11px;
+             font-family:var(--mono);font-weight:700;color:var(--gray-600);cursor:pointer;
+             margin-bottom:6px;transition:all 0.12s;"
+      onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'"
+      onmouseout="this.style.borderColor='var(--gray-400)';this.style.color='var(--gray-600)'">
+      🗄 ${esc(tbl.name)}
+    </span>`;
+
+    // Column chips
+    const colChips = filtered.map(c => {
+      const isPk = tbl.pkCols.includes(c.name);
+      const matchStart = q ? c.name.toLowerCase().indexOf(q) : -1;
+      const label = matchStart >= 0
+        ? esc(c.name.slice(0, matchStart))
+          + '<strong style="color:var(--red)">' + esc(c.name.slice(matchStart, matchStart + q.length)) + '</strong>'
+          + esc(c.name.slice(matchStart + q.length))
+        : esc(c.name);
+      return `<span
+        onclick="addColToVocab('${esc(c.name)}', '${esc(tbl.name)}')"
+        title="Click to add to vocabulary"
+        style="display:inline-block;padding:3px 9px;border-radius:100px;
+               border:1px solid ${isPk ? 'var(--blue)' : 'var(--gray-200)'};
+               background:${isPk ? 'var(--blue-light)' : '#fff'};
+               font-size:11px;font-family:var(--mono);
+               color:${isPk ? 'var(--blue)' : 'var(--gray-600)'};
+               cursor:pointer;margin:2px;transition:all 0.12s;user-select:none;"
+        onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)';this.style.background='var(--red-light)'"
+        onmouseout="this.style.borderColor='${isPk ? 'var(--blue)' : 'var(--gray-200)'}';this.style.color='${isPk ? 'var(--blue)' : 'var(--gray-600)'}';\
+this.style.background='${isPk ? 'var(--blue-light)' : '#fff'}'">
+        ${isPk ? '🔑 ' : ''}${label}
+      </span>`;
+    }).join("");
+
+    html += `<div style="margin-bottom:14px;">
+      ${tableChip}
+      <div style="line-height:2;">${colChips}</div>
+    </div>`;
+  }
+  if (!html) html = '<div style="font-size:12px;color:var(--gray-400);padding:8px 0;">No fields match "' + esc(query) + '"</div>';
+  return html;
+}
+
+function filterChips(query) {
+  const body = $("chip-panel-body");
+  if (!body || !window._chipTables) return;
+  body.innerHTML = renderChipSections(window._chipTables, query);
+}
+function addColToVocab(colName, tableName) {
+  if (!state.table_vocab) state.table_vocab = [];
+  let target = state.table_vocab.findIndex(v => !v.term || !v.term.trim());
+  if (target === -1) {
+    state.table_vocab.push({term:"", alias:"", definition:"", source:""});
+    target = state.table_vocab.length - 1;
+  }
+  state.table_vocab[target].term = colName;
+  state.table_vocab[target].source = tableName;
+  refreshTableVocabUI();
+  const vs = $("table-vocab-section");
+  if (vs) vs.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  toast('"' + colName + '" added to vocabulary ↓');
+}
+
+// ── Similar field detection ───────────────────────────────────────────────────
+function findSimilarFields(results) {
+  const allCols = {};
+  for (const [tbl, meta] of Object.entries(results)) {
+    if (!meta.ok) continue;
+    for (const c of (meta.columns || [])) {
+      const norm = c.name.replace(/_/g,"").toLowerCase();
+      if (!allCols[norm]) allCols[norm] = [];
+      allCols[norm].push({ table: tbl, col: c.name });
+    }
+  }
+  const similar = [];
+  const seen = new Set();
+  const norms = Object.keys(allCols);
+
+  // Cross-table near-matches: one norm contains the other, different tables
+  for (let i = 0; i < norms.length; i++) {
+    for (let j = i+1; j < norms.length; j++) {
+      const a = norms[i], b = norms[j];
+      if (a === b) continue;
+      if (!((a.includes(b) || b.includes(a)) && Math.abs(a.length - b.length) <= 5)) continue;
+      const entriesA = allCols[a], entriesB = allCols[b];
+      // Only include if they appear in different tables
+      const tablesA = new Set(entriesA.map(e => e.table));
+      const tablesB = new Set(entriesB.map(e => e.table));
+      const crossTable = [...tablesA].some(t => tablesB.has(t) === false) ||
+                         [...tablesB].some(t => tablesA.has(t) === false);
+      if (!crossTable) continue;
+      const key = [a, b].sort().join("|");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      similar.push({ a: entriesA, b: entriesB });
+    }
+  }
+
+  // Same normalised name appearing in multiple different tables = definite alias
+  for (const norm of norms) {
+    const entries = allCols[norm];
+    const tables = [...new Set(entries.map(e => e.table))];
+    if (tables.length < 2) continue; // same table duplicates — skip
+    const key = "same:" + norm;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    // Group one representative per table
+    const byTable = {};
+    for (const e of entries) { if (!byTable[e.table]) byTable[e.table] = e; }
+    const reps = Object.values(byTable);
+    similar.push({ a: [reps[0]], b: reps.slice(1), sameNorm: true });
+  }
+
+  return similar;
+}
+
+// ── Similar field alerts — collapsed, only shown for 2+ tables ────────────────
+function renderSimilarFieldAlerts() {
+  const container = $("similar-field-alerts");
+  if (!container) return;
+  const results = state.validated_tables || {};
+  const okCount = Object.values(results).filter(r => r.ok).length;
+  if (okCount < 2) { container.innerHTML = ""; return; }
+
+  const pairs = findSimilarFields(results);
+  if (!pairs.length) { container.innerHTML = ""; return; }
+
+  const seen = new Set();
+  let itemsHtml = "";
+  for (const pair of pairs.slice(0, 8)) {
+    const key = [pair.a[0].col, pair.b[0].col].sort().join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const colsA = pair.a.map(x => `<code style="font-size:11px;background:rgba(213,43,30,0.08);color:var(--red);padding:1px 5px;border-radius:3px;">${x.col}</code><span style="font-size:10px;color:var(--gray-400);margin-left:3px;">(${x.table})</span>`).join(", ");
+    const colsB = pair.b.map(x => `<code style="font-size:11px;background:rgba(213,43,30,0.08);color:var(--red);padding:1px 5px;border-radius:3px;">${x.col}</code><span style="font-size:10px;color:var(--gray-400);margin-left:3px;">(${x.table})</span>`).join(", ");
+    const label = pair.sameNorm ? "Same field, different alias" : "Similar names — confirm if same";
+    itemsHtml += `<div style="padding:7px 0;border-bottom:1px solid rgba(232,201,122,0.4);font-size:12px;line-height:1.7;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--amber);white-space:nowrap;">${label}</span>
+      <span>${colsA} &nbsp;↔&nbsp; ${colsB}</span>
+      <button onclick="addPairToVocab('${esc(pair.a[0].col)}','${esc(pair.b[0].col)}','${esc(pair.a[0].table)}')"
+        style="margin-left:auto;flex-shrink:0;font-size:11px;font-weight:600;color:var(--amber);background:rgba(138,87,0,0.08);
+               border:1px solid rgba(138,87,0,0.2);border-radius:100px;padding:3px 10px;cursor:pointer;white-space:nowrap;">
+        + Add to vocab
+      </button>
+    </div>`;
+  }
+
+  container.innerHTML = `
+    <div style="background:var(--amber-light);border:1px solid #e8c97a;border-radius:var(--radius);margin-bottom:12px;overflow:hidden;">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;user-select:none;"
+           onclick="toggleSimilarFields()">
+        <span style="font-size:12px;font-weight:600;color:var(--amber);">⚠️ ${seen.size} similar field name${seen.size > 1 ? 's' : ''} detected across tables</span>
+        <span id="similar-chevron" style="margin-left:auto;font-size:11px;color:var(--amber);">▼ expand</span>
+      </div>
+      <div id="similar-fields-body" style="display:none;padding:4px 14px 10px;">
+        <div style="font-size:11px;color:var(--gray-600);margin-bottom:6px;">Review these pairs — they may be the same field under different aliases. Click <strong>+ Add to vocab</strong> to map them.</div>
+        ${itemsHtml}
+      </div>
+    </div>`;
+}
+
+function toggleSimilarFields() {
+  const body = $("similar-fields-body");
+  const chev = $("similar-chevron");
+  if (!body) return;
+  const open = body.style.display !== "none";
+  body.style.display = open ? "none" : "block";
+  if (chev) chev.textContent = open ? "▼ expand" : "▲ collapse";
+}
+
+function addPairToVocab(colA, colB, tableA) {
+  if (!state.table_vocab) state.table_vocab = [];
+  let target = state.table_vocab.findIndex(v => !v.term || !v.term.trim());
+  if (target === -1) {
+    state.table_vocab.push({term:"", alias:"", definition:"", source:""});
+    target = state.table_vocab.length - 1;
+  }
+  state.table_vocab[target].term = colA;
+  state.table_vocab[target].alias = colB;
+  state.table_vocab[target].source = tableA;
+  refreshTableVocabUI();
+  const vs = $("table-vocab-section");
+  if (vs) vs.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  toast(`"${colA}" ↔ "${colB}" added to vocabulary ↓`);
+}
+
+// ── Table vocabulary (field alias/definition) ─────────────────────────────────
+function tableVocabRow(v, i) {
+  const sourceTag = v.source
+    ? '<span style="font-size:10px;background:var(--blue-light);color:var(--blue);border-radius:100px;padding:1px 7px;font-family:var(--mono);margin-left:4px;">' + esc(v.source) + '</span>'
+    : "";
+  return `
+  <div style="display:grid;grid-template-columns:1fr 1fr 2fr 24px;gap:8px;margin-bottom:8px;align-items:start;">
+    <div>
+      <input type="text" placeholder="Term, field, or jargon" id="tv-term-${i}"
+             value="${esc(v.term||'')}" oninput="state.table_vocab[${i}].term = this.value"
+             style="font-size:12px;font-family:var(--mono);width:100%;">
+      ${sourceTag}
+    </div>
+    <input type="text" placeholder="Alias (or leave blank)"
+           value="${esc(v.alias||'')}" oninput="state.table_vocab[${i}].alias = this.value"
+           style="font-size:12px;font-family:var(--mono);">
+    <input type="text" placeholder="What it means or the standing rule"
+           value="${esc(v.definition||'')}" oninput="state.table_vocab[${i}].definition = this.value"
+           style="font-size:12px;">
+    ${i >= 2 ? '<button onclick="removeTableVocab(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--gray-400);font-size:16px;padding:0;margin-top:8px;">✕</button>' : "<span></span>"}
+  </div>`;
+}
+
+function refreshTableVocabUI() {
+  const container = $("table-vocab-fields");
+  if (!container) return;
+  container.innerHTML = (state.table_vocab||[]).map((v,i) => tableVocabRow(v,i)).join("");
+}
+
+function addTableVocab() {
+  if (!state.table_vocab) state.table_vocab = [];
+  state.table_vocab.push({term:"", alias:"", definition:""});
+  refreshTableVocabUI();
+}
+
+function removeTableVocab(i) {
+  state.table_vocab.splice(i, 1);
+  refreshTableVocabUI();
 }
 
 function toggleColPanel(id) {
@@ -2252,10 +2511,28 @@ function renderKPIs(el) {
       <div class="divider"></div>
 
       <div class="field-group">
-        <label class="field-label">Stakeholder notes</label>
+        <label class="field-label">Stakeholder notes
+          <span style="font-weight:400;font-style:italic;color:var(--gray-400);font-size:11px;text-transform:none;"> — optional</span>
+        </label>
         <textarea rows="3" placeholder="Any context useful for Claude — stakeholder priorities, known sensitivities, prior analyses to reference..."
                   oninput="state.stakeholder_notes = this.value">${esc(state.stakeholder_notes)}</textarea>
         <div class="field-hint">Optional. Populates stakeholder_notes.md if filled in.</div>
+        <!-- Image drop zone for stakeholder reference images -->
+        <div id="sn-image-zone"
+             style="margin-top:8px;border:1.5px dashed var(--gray-200);border-radius:var(--radius);
+                    padding:12px 16px;text-align:center;cursor:pointer;transition:all 0.15s;background:var(--gray-50);"
+             ondragover="event.preventDefault();this.style.borderColor='var(--blue)';this.style.background='var(--blue-light)'"
+             ondragleave="this.style.borderColor='var(--gray-200)';this.style.background='var(--gray-50)'"
+             ondrop="handleStakeholderImageDrop(event)">
+          <input type="file" accept="image/*" multiple
+                 style="position:absolute;opacity:0;width:0;height:0;" id="sn-file-input"
+                 onchange="handleStakeholderImageFiles(this.files)">
+          <div style="font-size:12px;color:var(--gray-400);" id="sn-image-label">
+            📎 <strong style="color:var(--blue);cursor:pointer;" onclick="$('sn-file-input').click()">Attach reference images</strong> or drag here
+            <span style="display:block;font-size:11px;margin-top:3px;">Charts, mockups, or prior output snapshots — these are noted in stakeholder_notes.md for Claude reference.</span>
+          </div>
+          <div id="sn-image-list" style="margin-top:8px;text-align:left;"></div>
+        </div>
       </div>
 
       <div class="btn-row">
@@ -2302,14 +2579,14 @@ function buildPlaybookOptions(kpiName, currentEntry) {
 }
 
 function kpiBlock(k, i) {
-  const twOpts = ["","Rolling 12M","Rolling 6M","Rolling 3M","Inception-to-date","Point-in-time snapshot","YTD","Custom date range"];
+  const twOpts = ["","Latest 3 months","Latest 6 months","Latest 12 months","YTD","Rolling 3M","Rolling 6M","Rolling 12M","Custom window"];
+  const grainOpts = ["","HCP","HCP x Month","Service date","Claim level","HCP x Claim","Custom"];
   const isFirst = i === 0;
   const headerLabel = (k.name||"").trim() || `KPI ${i+1}`;
   const mode = k.sql_source_mode || "";
   const rules = k.sql_rules || {};
   const pb = matchedPlaybook(k.name);
 
-  // Collapsed wrapper for KPI 2+
   const collapseId = `kpi-collapse-${i}`;
   const bodyId = `kpi-body-${i}`;
 
@@ -2334,7 +2611,7 @@ function kpiBlock(k, i) {
       <div id="${bodyId}" style="padding:12px 16px 14px;${!isFirst && !k._open ? 'display:none;' : ''}">
 
         <div class="field-group" style="margin-bottom:10px;">
-          <label class="field-label">Metric name</label>
+          <label class="field-label">Metric name <span>*</span></label>
           <input type="text" value="${esc(k.name||"")}" placeholder="e.g. Trialist Rate"
                  oninput="state.kpis[${i}].name = this.value; updateKpiHeader(${i}, this.value);">
         </div>
@@ -2349,9 +2626,9 @@ function kpiBlock(k, i) {
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
           <div class="field-group" style="margin-bottom:0;">
-            <label class="field-label">Grain</label>
+            <label class="field-label">Grain <span>*</span></label>
             <select id="grain-select-${i}" oninput="handleGrainSelect(${i}, this.value)">
-              ${["","patient","HCP / NPI","HCP × month","month","territory","claim / fill","Custom"].map(o =>
+              ${grainOpts.map(o =>
                 `<option value="${o}" ${(k.grain||"")=== o ? "selected":""}>${o || "— select —"}</option>`
               ).join("")}
             </select>
@@ -2363,7 +2640,7 @@ function kpiBlock(k, i) {
             <div class="field-hint">One row per what?</div>
           </div>
           <div class="field-group" style="margin-bottom:0;">
-            <label class="field-label">Time window</label>
+            <label class="field-label">Time window <span>*</span></label>
             <select id="tw-select-${i}" oninput="handleTwSelect(${i}, this.value)">
               ${twOpts.map(o => `<option value="${o}" ${(k.time_window||"")=== o ? "selected":""}>${o || "— select —"}</option>`).join("")}
             </select>
@@ -2371,26 +2648,20 @@ function kpiBlock(k, i) {
                    placeholder="e.g. 2024-01-01 to 2026-03-31"
                    value="${esc((k.time_window_custom)||"")}"
                    oninput="state.kpis[${i}].time_window_custom = this.value"
-                   style="margin-top:6px;display:${(k.time_window||"")==='Custom date range'?'block':'none'};">
+                   style="margin-top:6px;display:${(k.time_window||"")==='Custom window'?'block':'none'};">
             <div class="field-hint">Lookback or accumulation logic.</div>
           </div>
         </div>
 
+        <!-- Merged caveats + pattern notes -->
         <div class="field-group" style="margin-bottom:10px;">
-          <label class="field-label">Known caveats</label>
-          <textarea rows="2" placeholder="e.g. Most recent month subject to data lag (~2 week delay). Excludes specialty pharmacy channel."
+          <label class="field-label">Keep in mind
+            <span style="font-weight:400;font-style:italic;color:var(--gray-400);font-size:11px;text-transform:none;"> — optional</span>
+          </label>
+          <textarea rows="3" placeholder="Data lag, exclusions, truncation risk, known quirks — and any pre-flight instructions for Claude before writing SQL (e.g. 'Pre-aggregate to monthly grain first. Use ROWS BETWEEN not RANGE BETWEEN on Redshift.')."
                     oninput="state.kpis[${i}].caveats = this.value"
-                    style="font-size:13px;">${esc(k.caveats||"")}</textarea>
-          <div class="field-hint">Data lag, exclusions, population gaps, truncation risk.</div>
-        </div>
-
-        <div class="field-group" style="margin-bottom:10px;">
-          <label class="field-label">Pattern notes</label>
-          <input type="text" placeholder="e.g. Pre-aggregate to monthly grain before applying rolling window. Use ROWS BETWEEN not RANGE BETWEEN."
-                 value="${esc(k.pattern_notes||"")}"
-                 oninput="state.kpis[${i}].pattern_notes = this.value"
-                 style="font-size:13px;">
-          <div class="field-hint">Optional. What Claude should know before writing SQL for this KPI — approach, ordering constraints, pre-steps.</div>
+                    style="font-size:13px;">${esc(k.caveats||k.pattern_notes||"")}</textarea>
+          <div class="field-hint">Caveats and pattern guidance in one place. Claude reads this before writing any SQL for this metric.</div>
         </div>
 
         <!-- SQL logic section — collapsible -->
@@ -2437,7 +2708,7 @@ function kpiBlock(k, i) {
               </div>
             </div>
 
-            <!-- Describe mode -->
+            <!-- Describe mode — simplified -->
             <div id="sql-describe-${i}" style="${mode==='describe'?'':'display:none;'}">
               <div class="field-group" style="margin-bottom:8px;">
                 <label class="field-label">Columns used</label>
@@ -2447,25 +2718,20 @@ function kpiBlock(k, i) {
                 <div class="field-hint">Exact column names from validated tables — avoids Claude inventing them.</div>
               </div>
               <div class="field-group" style="margin-bottom:8px;">
-                <label class="field-label">Business rules</label>
+                <label class="field-label">Business rules <span>*</span></label>
                 <textarea rows="2" placeholder="e.g. Cumulative NBRx per HCP since launch. Trialist=1, User=2, Adopter≥3."
                           oninput="state.kpis[${i}].sql_rules.business_rules = this.value"
                           style="font-size:13px;">${esc((rules.business_rules)||"")}</textarea>
                 <div class="field-hint">Thresholds, filters, waterfall order — the core logic.</div>
               </div>
-              <div class="field-group" style="margin-bottom:8px;">
-                <label class="field-label">Exclusions</label>
-                <input type="text" placeholder="e.g. Exclude patient_birth_year IS NULL. Exclude specialty pharmacy channel."
-                       value="${esc((rules.exclusions)||"")}"
-                       oninput="state.kpis[${i}].sql_rules.exclusions = this.value">
-                <div class="field-hint">Who or what is explicitly excluded — kept separate from rules to force explicit callout.</div>
-              </div>
               <div class="field-group" style="margin-bottom:0;">
-                <label class="field-label">Known edge cases</label>
-                <input type="text" placeholder="e.g. Month gaps — HCPs with no NBRx in a month have no row. Sentinel birth year = 0."
-                       value="${esc((rules.edge_cases)||"")}"
-                       oninput="state.kpis[${i}].sql_rules.edge_cases = this.value">
-                <div class="field-hint">Sentinel values, gap months, multi-bucket patients, alias reference issues.</div>
+                <label class="field-label">Exclusions &amp; edge cases
+                  <span style="font-weight:400;font-style:italic;color:var(--gray-400);font-size:11px;text-transform:none;"> — optional</span>
+                </label>
+                <textarea rows="2" placeholder="e.g. Exclude patient_birth_year IS NULL. Exclude specialty pharmacy. Month gaps — HCPs with no NBRx have no row."
+                          oninput="state.kpis[${i}].sql_rules.exclusions = this.value"
+                          style="font-size:13px;">${esc((rules.exclusions||"") + (rules.edge_cases ? "\n"+rules.edge_cases : ""))}</textarea>
+                <div class="field-hint">Explicit exclusions and known edge cases combined.</div>
               </div>
             </div>
 
@@ -2521,6 +2787,37 @@ function removeKPI(i) {
   renderStep();
 }
 
+// ── Stakeholder image handling ────────────────────────────────────────────────
+function handleStakeholderImageDrop(event) {
+  event.preventDefault();
+  const zone = document.getElementById("sn-image-zone");
+  if (zone) { zone.style.borderColor = "var(--gray-200)"; zone.style.background = "var(--gray-50)"; }
+  handleStakeholderImageFiles(event.dataTransfer.files);
+}
+
+function handleStakeholderImageFiles(files) {
+  if (!files || !files.length) return;
+  if (!state.stakeholder_images) state.stakeholder_images = [];
+  const listEl = document.getElementById("sn-image-list");
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const entry = { name: file.name, size: Math.round(file.size/1024) + " KB", dataUrl: e.target.result };
+      state.stakeholder_images.push(entry);
+      if (listEl) {
+        const div = document.createElement("div");
+        div.style.cssText = "display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--gray-100);font-size:12px;";
+        div.innerHTML = `<img src="${e.target.result}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--gray-200);">
+          <span style="flex:1;color:var(--gray-800);">${esc(file.name)}</span>
+          <span style="color:var(--gray-400);">${entry.size}</span>`;
+        listEl.appendChild(div);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function addKPI() {
   state.kpis.push({
     name:"", definition:"", grain:"", grain_custom:"",
@@ -2550,8 +2847,8 @@ function handleTwSelect(i, value) {
   state.kpis[i].time_window = value;
   const customInput = $(`tw-custom-${i}`);
   if (customInput) {
-    customInput.style.display = value === "Custom date range" ? "block" : "none";
-    if (value !== "Custom date range") state.kpis[i].time_window_custom = "";
+    customInput.style.display = value === "Custom window" ? "block" : "none";
+    if (value !== "Custom window") state.kpis[i].time_window_custom = "";
   }
 }
 
@@ -2581,7 +2878,7 @@ function renderValidation(el) {
           <li><strong>Table validation</strong> — at least one table should have validated successfully. Without this, <code>EXAMPLES.md</code> uses placeholder column names and <code>schema_reference.md</code> is empty.</li>
           <li><strong>KPI definitions</strong> — at least one KPI with a name and definition. Without KPIs, <code>EXAMPLES.md</code> and <code>kpi_definitions.md</code> are stub-only.</li>
           <li><strong>SQL logic</strong> — checks whether any KPI has a SQL source set (playbook / paste / describe). KPIs without SQL logic get generic stubs in <code>EXAMPLES.md</code> that Claude has less to work from.</li>
-          <li><strong>None of these are blocking</strong> — the green download button is always active. Fix gaps after download by editing the files directly, or re-run File Primer with the same session.</li>
+          <li><strong>None of these are blocking</strong> — the green download button is always active. Fix gaps after download by editing the files directly, or re-run primerMD with the same session.</li>
         </ul>
       </div>
 
@@ -2685,16 +2982,6 @@ function runChecks() {
       msg:  description.length > 20 ? "Provided \u2713" : "Too brief or missing — CLAUDE.md context will be thin",
     },
     {
-      label: "Owner / DRI",
-      pass: owner.length > 0,
-      msg:  owner || "Not set — README ownership section will be blank",
-    },
-    {
-      label: "Audience",
-      pass: audience.length > 0,
-      msg:  audience.length ? audience.join(", ") : "Not selected — stakeholder context missing",
-    },
-    {
       label: "Tables in scope",
       pass: tablesRaw.length > 0,
       msg:  tablesRaw.length ? tableList.length + " table(s) listed" : "No tables entered — schema_reference.md will be empty",
@@ -2761,14 +3048,14 @@ function buildPreviewFiles() {
     return `### Domain ${i+1} — ${label}\n\n${lines.join("\n")}`;
   }).join("\n\n");
 
-  const activeVocab = (s.vocab||[]).filter(v => v.term && v.term.trim());
+  const activeVocab = (s.table_vocab||[]).filter(v => v.term && v.term.trim());
   const vocabSection = activeVocab.length
-    ? `\n## Business vocabulary\n\n| Term | Definition |\n|------|------------|\n` +
-      activeVocab.map(v => `| **${v.term}** | ${v.definition} |`).join("\n")
+    ? `\n## Vocabulary\n\n| Term | Alias | Definition / Convention |\n|------|-------|-------------------------|\n` +
+      activeVocab.map(v => `| **${v.term}** | ${v.alias||"—"} | ${v.definition||"—"} |`).join("\n")
     : "";
 
   files["CLAUDE.md"] = `# CLAUDE.md — ${s.project_name || "Unnamed Project"}
-*Generated by File Primer on ${today}*
+*Generated by primerMD on ${today}*
 
 ## Project overview
 ${s.description || "*(description not provided)*"}
@@ -2820,7 +3107,7 @@ ${meta.columns.map(c=>{
     }
     files["schema_reference.md"] = schemaContent;
   } else {
-    files["schema_reference.md"] = `# Schema reference\n*Generated ${today}*\n\n> ⚠️ Tables not yet validated against Redshift. Re-run File Primer with validation to populate real column metadata.\n\n## Tables referenced\n${tableList}\n`;
+    files["schema_reference.md"] = `# Schema reference\n*Generated ${today}*\n\n> ⚠️ Tables not yet validated against Redshift. Re-run primerMD with validation to populate real column metadata.\n\n## Tables referenced\n${tableList}\n`;
   }
 
   // kpi_definitions.md
@@ -2924,7 +3211,7 @@ function renderPreview(el) {
         <ul>
           <li><strong>Unzip into your project folder</strong> — the folder Claude Code will open. <code>CLAUDE.md</code> loads automatically at every session start.</li>
           <li><strong>Start sessions with intent</strong> — "Read <code>EXAMPLES.md</code> and <code>kpi_definitions.md</code>, then help me build the NBRx rolling window using <code>apld_ex.elaad_oncology_masterdata</code>." The more specific the file reference, the tighter Claude's first response.</li>
-          <li><strong>session.json is included</strong> — this snapshot of your inputs lets you re-run File Primer later to refresh the scaffold (e.g. after a new data period, a new KPI, or a brand addition) without re-entering everything from scratch.</li>
+          <li><strong>session.json is included</strong> — this snapshot of your inputs lets you re-run primerMD later to refresh the scaffold (e.g. after a new data period, a new KPI, or a brand addition) without re-entering everything from scratch.</li>
           <li><strong>Editing after download</strong> — the files are plain Markdown. Add completed SQL to <code>EXAMPLES.md</code> as the project matures. The more real examples in that file, the better Claude understands your expected query style.</li>
         </ul>
       </div>
@@ -2964,7 +3251,7 @@ async function downloadAll() {
   spinner.style.display = "block";
 
   try {
-    const resp = await fetch(apiUrl("/generate"), {
+    const resp = await fetch("/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
@@ -3013,6 +3300,8 @@ function reset() {
       {therapeutic_area:"", brand:"", indication:[], indication_other:"", data_sources:[], data_sources_other:"", key_population:{}, known_exclusions:"", market_context:{}, disease_state:{}, drug_performance:{}, additional_context:""},
     ],
     vocab: [{term:"",definition:""},{term:"",definition:""}],
+    table_vocab: [{term:"",alias:"",definition:""},{term:"",alias:"",definition:""}],
+    stakeholder_images: [],
     tables_raw: "",
     validated_tables: {}, kpis: [
       {name:"",definition:"",grain:"",grain_custom:"",time_window:"",time_window_custom:"",caveats:"",sql_source_mode:"",sql_playbook_entry:"",sql_pasted:"",sql_rules:{columns:"",business_rules:"",exclusions:"",edge_cases:""},pattern_notes:""},
@@ -3029,7 +3318,7 @@ function reset() {
 
 async function checkConnection() {
   try {
-    const res = await fetch(apiUrl("/status"));
+    const res = await fetch("/status");
     const data = await res.json();
     if (data.connected) {
       showMainApp();
@@ -3071,7 +3360,7 @@ async function submitConnect() {
   };
 
   try {
-    const res = await fetch(apiUrl("/connect"), {
+    const res = await fetch("/connect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
