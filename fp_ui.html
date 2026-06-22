@@ -2102,7 +2102,7 @@ async function runValidation(mode) {
   spinner.style.display = "block";
   label.textContent = "Validating…";
 
-  const timeoutMs = isViews ? 60000 : 45000;
+  const timeoutMs = 300000; // 5 minutes — Redshift metadata queries can be slow
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -2132,7 +2132,7 @@ async function runValidation(mode) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      toast(`Validation timed out (>${timeoutMs/1000}s) — ${isViews ? "LBV metadata can be slow; try fewer views at once" : "Redshift may be busy — try again"}`, true);
+      toast(`Validation timed out (>5 min) — ${isViews ? "try fewer views at once" : "Redshift may be busy — try again"}`, true);
     } else {
       toast("Network error: " + err.message, true);
     }
