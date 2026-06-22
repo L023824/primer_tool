@@ -1145,6 +1145,19 @@
 <div id="toast"></div>
 
 <script>
+// ── Base URL — Posit Connect reverse proxy fix ───────────────────────────────
+// On Posit Connect, the app lives at /content/{guid}/ — bare paths like
+// "/connect" resolve to the server root and 404. We detect the Posit path
+// and prefix all API calls with it.
+const BASE_URL = (() => {
+  const href = window.location.href;
+  const m = href.match(/(https?:\/\/[^/]+\/content\/[^/?#]+)\/?/);
+  return m ? m[1] + "/" : window.location.origin + "/";
+})();
+function apiUrl(path) {
+  return BASE_URL + path.replace(/^\//, "");
+}
+
 // ── State ────────────────────────────────────────────────────────────────────
 const STEPS = [
   { id: "mode",       label: "Output type" },
@@ -1229,7 +1242,7 @@ function handleSessionFile(file) {
   const fd = new FormData();
   fd.append("session", file);
 
-  fetch("/load_session", { method: "POST", body: fd })
+  fetch(apiUrl("/load_session"), { method: "POST", body: fd })
     .then(r => r.json())
     .then(data => {
       if (data.error) {
@@ -1919,7 +1932,7 @@ async function fetchDomainContext(i, indication) {
   if (!ta || !indication) return;
 
   try {
-    const res = await fetch(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`);
+    const res = await fetch(apiUrl(`/domain_context?ta=${encodeURIComponent(ta)}&indication=${encodeURIComponent(indication)}`));
     if (!res.ok) {
       console.warn(`fetchDomainContext: server returned ${res.status} for ${ta}/${indication}`);
       return;
@@ -2055,7 +2068,7 @@ async function runValidation() {
   label.textContent = "Validating…";
 
   try {
-    const resp = await fetch("/validate", {
+    const resp = await fetch(apiUrl("/validate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tables }),
@@ -3251,7 +3264,7 @@ async function downloadAll() {
   spinner.style.display = "block";
 
   try {
-    const resp = await fetch("/generate", {
+    const resp = await fetch(apiUrl("/generate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
@@ -3318,7 +3331,7 @@ function reset() {
 
 async function checkConnection() {
   try {
-    const res = await fetch("/status");
+    const res = await fetch(apiUrl("/status"));
     const data = await res.json();
     if (data.connected) {
       showMainApp();
@@ -3360,7 +3373,7 @@ async function submitConnect() {
   };
 
   try {
-    const res = await fetch("/connect", {
+    const res = await fetch(apiUrl("/connect"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
