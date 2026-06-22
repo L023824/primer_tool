@@ -1387,70 +1387,71 @@ def validate():
             schema, table = full_name.split(".", 1)
             try:
                 with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-
-                    # ── Step 1: check pg_class to determine object type ───────
-                    # This works for tables, regular views, materialized views,
-                    # AND late-binding views (LBVs, created WITH NO SCHEMA BINDING).
-                    # LBVs have relkind='v' in pg_class but zero rows in pg_attribute.
+                    # Single round-trip: pg_attribute covers tables + regular views.
+                    # information_schema.columns covers late-binding views (LBVs,
+                    # WITH NO SCHEMA BINDING) which have zero rows in pg_attribute.
+                    # The UNION ALL + NOT EXISTS ensures is_cols only surfaces when
+                    # pg_attribute returned nothing — so LBVs never conflict with tables.
+                    # reltuples for row count is inlined for tables only.
                     cur.execute("""
-                        SELECT c.relkind
-                        FROM pg_catalog.pg_class c
-                        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                        WHERE n.nspname = %s
-                          AND c.relname = %s
-                          AND c.relkind IN ('r', 'v', 'm')
-                    """, (schema, table))
-                    cls_row = cur.fetchone()
-
-                    # ── Step 2: try pg_attribute (tables + regular views) ─────
-                    cur.execute("""
-                        SELECT
-                            a.attname                                        AS name,
-                            pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
-                            NOT a.attnotnull                                 AS nullable,
-                            COALESCE(a.attisdistkey, false)                  AS distkey,
-                            COALESCE(a.attsortkeyord, 0)                     AS sortkey
-                        FROM pg_catalog.pg_attribute a
-                        JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
-                        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-                        WHERE n.nspname = %s
-                          AND c.relname = %s
-                          AND c.relkind IN ('r', 'v', 'm')
-                          AND a.attnum > 0
-                          AND NOT a.attisdropped
-                        ORDER BY a.attnum
-                    """, (schema, table))
-                    cols = [dict(r) for r in cur.fetchall()]
-
-                    # ── Step 3: LBV fallback via information_schema ───────────
-                    # Late-binding views defer column resolution, so pg_attribute
-                    # returns 0 rows. information_schema.columns covers them.
-                    lbv_fallback = False
-                    if not cols and cls_row:
-                        cur.execute("""
+                        WITH pg_cols AS (
                             SELECT
-                                column_name                             AS name,
-                                data_type                               AS type,
-                                (is_nullable = 'YES')                   AS nullable,
-                                false                                   AS distkey,
-                                0                                       AS sortkey
-                            FROM information_schema.columns
-                            WHERE table_schema = %s
-                              AND table_name   = %s
-                            ORDER BY ordinal_position
-                        """, (schema, table))
-                        cols = [dict(r) for r in cur.fetchall()]
-                        if cols:
-                            lbv_fallback = True
+                                a.attname                                        AS name,
+                                pg_catalog.format_type(a.atttypid, a.atttypmod) AS type,
+                                (NOT a.attnotnull)::boolean                      AS nullable,
+                                COALESCE(a.attisdistkey, false)                  AS distkey,
+                                COALESCE(a.attsortkeyord, 0)::int                AS sortkey,
+                                c.relkind                                        AS relkind,
+                                'pg'                                             AS source,
+                                a.attnum                                         AS ord
+                            FROM pg_catalog.pg_attribute a
+                            JOIN pg_catalog.pg_class c     ON c.oid = a.attrelid
+                            JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                            WHERE n.nspname = %s
+                              AND c.relname = %s
+                              AND c.relkind IN ('r', 'v', 'm')
+                              AND a.attnum > 0
+                              AND NOT a.attisdropped
+                        ),
+                        is_cols AS (
+                            SELECT
+                                ic.column_name                                   AS name,
+                                ic.data_type                                     AS type,
+                                (ic.is_nullable = 'YES')                         AS nullable,
+                                false                                            AS distkey,
+                                0                                                AS sortkey,
+                                COALESCE(pc.relkind, 'v')                        AS relkind,
+                                'is'                                             AS source,
+                                ic.ordinal_position                              AS ord
+                            FROM information_schema.columns ic
+                            LEFT JOIN (
+                                SELECT c.relkind
+                                FROM pg_catalog.pg_class c
+                                JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                                WHERE n.nspname = %s AND c.relname = %s
+                                  AND c.relkind IN ('r', 'v', 'm')
+                                LIMIT 1
+                            ) pc ON true
+                            WHERE ic.table_schema = %s
+                              AND ic.table_name   = %s
+                        )
+                        SELECT name, type, nullable, distkey, sortkey, relkind, source, ord
+                        FROM pg_cols
+                        UNION ALL
+                        SELECT name, type, nullable, distkey, sortkey, relkind, source, ord
+                        FROM is_cols
+                        WHERE NOT EXISTS (SELECT 1 FROM pg_cols)
+                        ORDER BY source, ord
+                    """, (schema, table, schema, table, schema, table))
+                    cols = [dict(r) for r in cur.fetchall()]
 
                     if not cols:
                         results[full_name] = {"ok": False, "error": "Not found — check schema/name and access permissions"}
                         continue
 
-                    # relkind from pg_class check; fall back to 'r' if object
-                    # wasn't in pg_class but somehow columns exist (shouldn't happen)
-                    raw_relkind = cls_row["relkind"] if cls_row else "r"
-                    is_view = raw_relkind in ("v", "m") or lbv_fallback
+                    raw_relkind  = cols[0].get("relkind", "r")
+                    lbv_fallback = cols[0].get("source") == "is"
+                    is_view      = raw_relkind in ("v", "m") or lbv_fallback
 
                     if is_view:
                         approx = -1

@@ -1131,7 +1131,7 @@
   <a class="logo" href="#" onclick="renderHome(); return false;">
     <div class="logo-mark">pM</div>
     <span class="logo-text">primerMD</span>
-    <span class="logo-sub">BI&A scaffold generator</span>
+    <span class="logo-sub">A BI&amp;A initiative</span>
   </a>
   <nav id="env-badge"></nav>
 </header>
@@ -2030,7 +2030,7 @@ function renderTables(el) {
         </div>
         <button class="btn btn-secondary" style="margin-top:6px" onclick="addTableVocab()">+ Add entry</button>
         <div class="field-hint" style="margin-top:8px;">
-          Examples — <strong>Term</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">eph_reference_id</code> · <strong>Alias</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">eph_reference_cust_id</code> · <strong>Definition</strong>: Patient-level surrogate key, use as primary join key across LAAD/ELAAD.
+          Examples — <strong>Term</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">eph_reference_cust_id</code> · <strong>Alias</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">eph_reference_id</code> · <strong>Definition</strong>: Individual HCP ID generated in alphanumeric format; primary join key across LAAD/ELAAD.
           Or — <strong>Term</strong>: <code style="font-size:11px;background:var(--gray-100);padding:1px 4px;border-radius:3px;">Community only</code> · <strong>Alias</strong>: — · <strong>Definition</strong>: Always exclude Academic Medical Centers (account_type = 'AMC') from HCP universe.
         </div>
       </div>
@@ -2067,14 +2067,22 @@ async function runValidation() {
   spinner.style.display = "block";
   label.textContent = "Validating…";
 
+  // Timeout: Posit Connect proxy drops idle connections around 60s.
+  // 45s gives enough time for slow metadata queries while failing fast enough
+  // to show an error rather than a silent hang.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+
   try {
     const resp = await fetch(apiUrl("/validate"), {
       method: "POST",
       headers: apiHeaders(),
       body: JSON.stringify({ tables }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!resp.ok) {
-      const e = await resp.json();
+      const e = await resp.json().catch(() => ({}));
       toast("Validation error: " + (e.error || resp.statusText), true);
       return;
     }
@@ -2084,7 +2092,12 @@ async function runValidation() {
     const okCount = Object.values(data.results).filter(r => r.ok).length;
     toast(`Validated ${okCount}/${tables.length} tables — schema_reference.md will include real column data ✓`);
   } catch (err) {
-    toast("Network error: " + err.message, true);
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      toast("Validation timed out (>45s) — Redshift may be slow or the connection was dropped. Try again or reduce the number of tables.", true);
+    } else {
+      toast("Network error: " + err.message, true);
+    }
   } finally {
     btn.disabled = false;
     spinner.style.display = "none";
