@@ -1285,13 +1285,21 @@ function hydrateState(session) {
   state.vocab             = (session.vocab && session.vocab.length)
     ? session.vocab
     : [{term:"",definition:""},{term:"",definition:""}];
+  state.table_vocab       = (session.table_vocab && session.table_vocab.length)
+    ? session.table_vocab
+    : [{term:"",alias:"",definition:""},{term:"",alias:"",definition:""}];
   state.tables_raw        = session.tables_raw        || "";
   state.views_raw         = session.views_raw         || "";
   state.validated_tables  = session.validated_tables  || {};
   state.kpis              = (session.kpis && session.kpis.length)
     ? session.kpis.map(k => Object.assign({}, kpiDefaults, k))
     : [Object.assign({}, kpiDefaults)];
-  state.stakeholder_notes = session.stakeholder_notes || "";
+  state.stakeholder_notes   = session.stakeholder_notes   || "";
+  // stakeholder_images are base64 blobs — present in session.json if images were
+  // attached at generate time; silently empty if not (e.g. older session files).
+  state.stakeholder_images  = (session.stakeholder_images && session.stakeholder_images.length)
+    ? session.stakeholder_images
+    : [];
   state.previewFiles      = {};
 }
 
